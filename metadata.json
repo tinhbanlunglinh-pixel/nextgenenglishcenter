@@ -1,0 +1,8 @@
+{
+  "name": "NEXTGEN ENGLISH",
+  "description": "Nextgen English - Learn English, Lead the way. Trung tâm Ngoại Ngữ Nextgen Uông Bí - Hệ thống AI hỗ trợ giảng dạy và học tập Tiếng Anh chuyên nghiệp & hiện đại.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ]
+}
