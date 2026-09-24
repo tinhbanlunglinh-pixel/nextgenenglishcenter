@@ -1,8 +1,10 @@
 
 import { GoogleGenAI, Type, Modality } from "@google/genai";
-import { LessonPlan, MindMapData, MindMapMode, PresentationScript, ContentResult, CharacterProfile, AppMode, ImageRatio, SpeechEvaluation, AiProvider, PreservedExam, ExamQuestion, ExamSection, ExamQuestionType } from "../types";
+import { LessonPlan, MindMapData, MindMapMode, PresentationScript, ContentResult, CharacterProfile, AppMode, ImageRatio, SpeechEvaluation, AiProvider, PreservedExam, ExamQuestion, ExamSection, ExamQuestionType, FallbackNotice } from "../types";
 import { ensureCompletePracticeContent } from "../utils/practiceBuilder";
 import { validateAndSanitizeLessonPlan } from "../utils/contentValidator";
+
+export type { FallbackNotice };
 
 export { ensureCompletePracticeContent, validateAndSanitizeLessonPlan };
 
@@ -231,12 +233,6 @@ export const parseApiError = (error: any): { type: ApiErrorType; message: string
   };
 };
 
-export interface FallbackNotice {
-  fromModel: string;
-  toModel: string;
-  reason: string;
-}
-
 // Retry with model fallback strictly following api.md Section II
 export const callWithFallback = async <T>(
   fn: (model: string, client: GoogleGenAI) => Promise<T>,
@@ -365,7 +361,7 @@ const playSingleAudioUrl = (url: string): Promise<boolean> => {
   return new Promise((resolve) => {
     try {
       const audio = new Audio();
-      audio.referrerPolicy = 'no-referrer';
+      (audio as any).referrerPolicy = 'no-referrer';
       audio.preload = 'auto';
       audio.src = url;
       currentAudioElement = audio;

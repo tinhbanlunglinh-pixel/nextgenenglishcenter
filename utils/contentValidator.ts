@@ -972,7 +972,7 @@ export const validateAndSanitizePracticeContent = (
   }
 ): PracticeContent => {
   const listening = (practice.listening || []).map((q, i) => sanitizeListeningQuestion(q, i));
-  const rawMega = practice.megaTest || {};
+  const rawMega: any = practice.megaTest || {};
 
   const multipleChoice = (rawMega.multipleChoice || []).map((q, i) => sanitizeMultipleChoiceQuestion(q, i));
   const scramble = (rawMega.scramble || []).map((q, i) => sanitizeScrambleQuestion(q, i));
@@ -1037,7 +1037,7 @@ export const validateAndSanitizeLessonPlan = (plan: LessonPlan): LessonPlan => {
     comprehension: (plan.reading?.comprehension || []).map((c, i) => ({
       id: c.id || `comp_${i + 1}`,
       question: (c.question || '').trim(),
-      correctAnswer: (c.correctAnswer || '').trim(),
+      correctAnswer: String(c.correctAnswer || '').trim(),
       alternativeAnswers: Array.isArray(c.alternativeAnswers) ? c.alternativeAnswers : undefined,
       options: Array.isArray(c.options) ? c.options : undefined,
       clueEmoji: c.clueEmoji || '📖',

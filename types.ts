@@ -15,6 +15,7 @@ export interface GrammarSection {
   topic: string;
   explanation: string;
   examples: string[];
+  structure?: string;
 }
 
 export interface ListeningQ {
@@ -287,6 +288,14 @@ export type AiProvider = 'gemini' | 'agent-platform';
 
 export type UserRole = 'teacher' | 'student';
 
+export interface FallbackNotice {
+  isFallback?: boolean;
+  fromModel?: string;
+  toModel?: string;
+  message?: string;
+  reason?: string;
+}
+
 export interface AuthUser {
   id: string;
   username: string;
@@ -295,6 +304,7 @@ export interface AuthUser {
   avatar?: string;
   classId?: string;
   className?: string;
+  phone?: string;
 }
 
 export interface ClassRoom {
@@ -404,6 +414,7 @@ export interface Assignment {
   lessonPlan: LessonPlan;   // Nội dung chi tiết bài soạn (Từ vựng, Ngữ pháp, Bài đọc, Bài tập)
   assignmentType?: 'lesson' | 'exam'; // 'lesson' = Bài học thông thường, 'exam' = Đề thi giữ nguyên gốc
   examData?: PreservedExam; // Dữ liệu đề thi bảo toàn gốc khi assignmentType === 'exam'
+  grade?: number;
   createdAt: string;
   updatedAt?: string;
   teacherModifiedAt?: string;
@@ -431,6 +442,9 @@ export interface Submission {
     vocab: number;
     tf: number;
     listen: number;
+    readingMC?: number;
+    pronunciation?: number;
+    readingFill?: number;
   };
   evaluation: {
     text: string;
@@ -482,6 +496,7 @@ export interface MonthlySessionConfig {
   date: string;              // e.g. "05/08/2026"
   dayLabel?: string;         // e.g. "Thứ Năm", "T5"
   timeSlot?: string;         // e.g. "17:30 - 19:00"
+  topic?: string;            // Chủ đề buổi học
   isManualDate?: boolean;    // true if teacher explicitly manually edited this single date
   colorTheme?: string;       // Pastel color name/class
   columns: MonthlySessionColumn[];
@@ -584,6 +599,8 @@ export interface ClassScheduleConfig {
   roomDefault?: string;
   notes?: string;
   updatedAt: string;
+  teacherModifiedAt?: string;
+  teacherModified?: boolean;
 }
 
 export type AttendanceStatus = 'present' | 'absent_excused' | 'absent_unexcused' | 'late';

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { toPng, toBlob } from 'html-to-image';
 import * as XLSX from 'xlsx';
-import { ClassRoom, Student, MonthlyReport, MonthlySessionConfig, StudentMonthlyScore, ClassScheduleConfig } from '../../types';
+import { ClassRoom, Student, MonthlyReport, MonthlySessionConfig, MonthlySessionColumn, StudentMonthlyScore, ClassScheduleConfig } from '../../types';
 import {
   getClasses,
   getStudents,

@@ -924,11 +924,11 @@ const DEFAULT_SAMPLE_LESSON: LessonPlan = {
     passage: "Hello! My name is Lan. I am eleven years old. Today is my first day at my new school. The school is big and beautiful. I wear my new uniform and carry my school bag. I have many new classmates. We are very excited!",
     translation: "Xin chào! Mình tên là Lan. Mình 11 tuổi. Hôm nay là ngày đầu tiên ở trường mới của mình. Ngôi trường to và rất đẹp. Mình mặc đồng phục mới và mang cặp sách. Mình có nhiều bạn cùng lớp mới. Chúng mình rất hào hứng!",
     comprehension: [
-      { id: "comp_1", question: "How old is Lan?", options: ["Ten", "Eleven", "Twelve", "Nine"], correctAnswer: 1, explanation: "Trong bài: 'I am eleven years old.' (Lan 11 tuổi)" },
-      { id: "comp_2", question: "How is Lan's new school?", options: ["Small and old", "Big and beautiful", "Noisy", "Crowded"], correctAnswer: 1, explanation: "Trong bài: 'The school is big and beautiful.'" },
-      { id: "comp_3", question: "What does Lan wear today?", options: ["A dress", "Her new uniform", "Jeans", "A jacket"], correctAnswer: 1, explanation: "Trong bài: 'I wear my new uniform.'" },
-      { id: "comp_4", question: "What does Lan carry?", options: ["A book", "Her school bag", "A lunch box", "A bottle"], correctAnswer: 1, explanation: "Trong bài: 'and carry my school bag.'" },
-      { id: "comp_5", question: "How do the students feel?", options: ["Tired", "Sad", "Very excited", "Bored"], correctAnswer: 2, explanation: "Trong bài: 'We are very excited!'" }
+      { id: "comp_1", question: "How old is Lan?", options: ["Ten", "Eleven", "Twelve", "Nine"], correctAnswer: "Eleven", explanation: "Trong bài: 'I am eleven years old.' (Lan 11 tuổi)" },
+      { id: "comp_2", question: "How is Lan's new school?", options: ["Small and old", "Big and beautiful", "Noisy", "Crowded"], correctAnswer: "Big and beautiful", explanation: "Trong bài: 'The school is big and beautiful.'" },
+      { id: "comp_3", question: "What does Lan wear today?", options: ["A dress", "Her new uniform", "Jeans", "A jacket"], correctAnswer: "Her new uniform", explanation: "Trong bài: 'I wear my new uniform.'" },
+      { id: "comp_4", question: "What does Lan carry?", options: ["A book", "Her school bag", "A lunch box", "A bottle"], correctAnswer: "Her school bag", explanation: "Trong bài: 'and carry my school bag.'" },
+      { id: "comp_5", question: "How do the students feel?", options: ["Tired", "Sad", "Very excited", "Bored"], correctAnswer: "Very excited", explanation: "Trong bài: 'We are very excited!'" }
     ]
   },
   homework: {
@@ -1904,7 +1904,7 @@ export const forceCloudSyncNow = async (): Promise<boolean> => {
  * 4. Starts background interval polling (every 30s) as reliable fallback.
  */
 export const initCloudSync = (): (() => void) => {
-  ensureNextgenStudentsReset();
+  ensureNextgenMasterClean();
   let isMounted = true;
 
   const doSync = async () => {
@@ -2409,14 +2409,14 @@ export const syncMonthlyReportsWithClassSchedule = (
     const stdSessions = generate8SessionsFromSchedule(classId, report.month, report.year);
 
     // Cập nhật ngày cho các buổi học, bảo toàn id, tên cột tùy chỉnh và điểm học sinh
-    const updatedSessions = (report.sessions || []).map((oldSess, idx) => {
+    const updatedSessions: MonthlySessionConfig[] = (report.sessions || []).map((oldSess, idx) => {
       const stdSess = stdSessions[idx];
       const useDate = (oldSess.isManualDate && oldSess.date) ? oldSess.date : (stdSess ? stdSess.date : oldSess.date);
       return {
         ...oldSess,
         date: useDate,
-        dayLabel: stdSess?.dayLabel || oldSess.dayLabel,
-        timeSlot: stdSess?.timeSlot || oldSess.timeSlot,
+        dayLabel: stdSess?.dayLabel || oldSess.dayLabel || '',
+        timeSlot: stdSess?.timeSlot || oldSess.timeSlot || '',
         name: oldSess.name || (stdSess ? stdSess.name : `Buổi ${idx + 1}`),
         columns: (oldSess.columns && oldSess.columns.length === 3)
           ? oldSess.columns

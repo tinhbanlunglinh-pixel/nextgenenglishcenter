@@ -100,6 +100,9 @@ interface MegaChallengeProps {
     grammarTopic?: string;
     grammarExplanation?: string;
     readingPassage?: string;
+    vocabulary?: string[];
+    grade?: number;
+    grammarStructure?: string;
   };
   onUpdateMegaData?: (updatedMegaData: PracticeContent['megaTest']) => void;
   onUpdateListeningData?: (updatedListeningData: PracticeContent['listening']) => void;

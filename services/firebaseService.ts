@@ -453,9 +453,11 @@ export const pullAllFromFirebase = async (): Promise<boolean> => {
   try {
     const [
       rawClasses,
+      rawDeletedClasses,
       rawStudents,
       rawDeletedStudents,
       rawAssignments,
+      rawDeletedAssignments,
       rawSubmissions,
       rawMonthlyReports,
       rawSchedules,
