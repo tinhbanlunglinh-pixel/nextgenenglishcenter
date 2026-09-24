@@ -145,8 +145,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
         databaseURL: fbDatabaseUrl.trim(),
         apiKey: fbApiKey.trim(),
         projectId: fbProjectId.trim(),
-        authDomain: `${fbProjectId.trim() || 'english-mrs-dung'}.firebaseapp.com`,
-        storageBucket: `${fbProjectId.trim() || 'english-mrs-dung'}.firebasestorage.app`
+        authDomain: `${fbProjectId.trim() || 'nextgen-english'}.firebaseapp.com`,
+        storageBucket: `${fbProjectId.trim() || 'nextgen-english'}.firebasestorage.app`
       };
       saveFirebaseConfig(config);
     }
@@ -401,7 +401,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
                     databaseURL: fbDatabaseUrl.trim(),
                     apiKey: fbApiKey.trim(),
                     projectId: fbProjectId.trim(),
-                    authDomain: `${fbProjectId.trim() || 'english-mrs-dung'}.firebaseapp.com`
+                    authDomain: `${fbProjectId.trim() || 'nextgen-english'}.firebaseapp.com`
                   });
                   const res = await testFirebaseConnection();
                   setFbTestResult(res);

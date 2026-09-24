@@ -304,6 +304,9 @@ export interface ClassRoom {
   description?: string;
   studentCount?: number;
   createdAt: string;
+  updatedAt?: string;
+  teacherModifiedAt?: string;
+  teacherModified?: boolean;
 }
 
 export interface Student {
@@ -402,6 +405,9 @@ export interface Assignment {
   assignmentType?: 'lesson' | 'exam'; // 'lesson' = Bài học thông thường, 'exam' = Đề thi giữ nguyên gốc
   examData?: PreservedExam; // Dữ liệu đề thi bảo toàn gốc khi assignmentType === 'exam'
   createdAt: string;
+  updatedAt?: string;
+  teacherModifiedAt?: string;
+  teacherModified?: boolean;
 }
 
 export type DeadlineStatus = 'active' | 'due_soon' | 'expired' | 'submitted';

@@ -137,7 +137,7 @@ export const VocabularySection: React.FC<VocabularySectionProps> = ({ items = []
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        const safeTopic = (topicTitle || 'Tu_Vung_Mrs_Dung').replace(/[^a-zA-Z0-9_-]/g, '_');
+        const safeTopic = (topicTitle || 'Tu_Vung_Nextgen').replace(/[^a-zA-Z0-9_-]/g, '_');
         a.download = `${safeTopic}_Vocabulary_Audio.wav`;
         document.body.appendChild(a);
         a.click();
@@ -163,7 +163,7 @@ export const VocabularySection: React.FC<VocabularySectionProps> = ({ items = []
       const a = document.createElement('a');
       a.href = audioUrl;
       a.target = '_blank';
-      const safeTopic = (topicTitle || 'Tu_Vung_Mrs_Dung').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const safeTopic = (topicTitle || 'Tu_Vung_Nextgen').replace(/[^a-zA-Z0-9_-]/g, '_');
       a.download = `${safeTopic}_Vocabulary_Audio_British.mp3`;
       document.body.appendChild(a);
       a.click();

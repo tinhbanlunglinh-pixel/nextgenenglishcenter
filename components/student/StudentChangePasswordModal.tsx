@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getClasses, getStudents } from '../../services/assignmentService';
-import { verifyStudentPhoneAndResetPassword } from '../../services/authService';
+import { changeStudentPasswordWithOldPassword } from '../../services/authService';
 import { ClassRoom, Student } from '../../types';
 
 interface StudentChangePasswordModalProps {
@@ -22,10 +22,11 @@ export const StudentChangePasswordModal: React.FC<StudentChangePasswordModalProp
   const [selectedClass, setSelectedClass] = useState<string>(initialClassName);
   const [studentName, setStudentName] = useState<string>(initialStudentName);
   const [classStudents, setClassStudents] = useState<Student[]>([]);
-  const [phone, setPhone] = useState<string>('');
+  const [oldPassword, setOldPassword] = useState<string>('123');
   const [newPassword, setNewPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
-  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showOldPassword, setShowOldPassword] = useState<boolean>(false);
+  const [showNewPassword, setShowNewPassword] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [successMsg, setSuccessMsg] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -39,7 +40,7 @@ export const StudentChangePasswordModal: React.FC<StudentChangePasswordModalProp
       const targetClass = initialClassName || (cls.length > 0 ? cls[0].name : '');
       setSelectedClass(targetClass);
       setStudentName(initialStudentName);
-      setPhone('');
+      setOldPassword('123'); // Pre-fill default 123 so student doesn't even need to type it if not changed!
       setNewPassword('');
       setConfirmPassword('');
       setErrorMsg('');
@@ -71,7 +72,7 @@ export const StudentChangePasswordModal: React.FC<StudentChangePasswordModalProp
     setSuccessMsg('');
 
     const cleanName = studentName.trim();
-    const cleanPhone = phone.trim();
+    const cleanOldPass = oldPassword.trim();
     const cleanNewPass = newPassword.trim();
     const cleanConfirmPass = confirmPassword.trim();
 
@@ -83,8 +84,12 @@ export const StudentChangePasswordModal: React.FC<StudentChangePasswordModalProp
       setErrorMsg('Vui lòng nhập hoặc chọn họ và tên của con!');
       return;
     }
-    if (!cleanPhone) {
-      setErrorMsg('Vui lòng nhập số điện thoại phụ huynh để xác minh!');
+    if (!cleanOldPass) {
+      setErrorMsg('Vui lòng nhập mật khẩu cũ (mật khẩu mặc định là 123)!');
+      return;
+    }
+    if (!cleanNewPass) {
+      setErrorMsg('Vui lòng nhập mật khẩu mới!');
       return;
     }
     if (cleanNewPass.length < 3) {
@@ -99,15 +104,15 @@ export const StudentChangePasswordModal: React.FC<StudentChangePasswordModalProp
     setIsSubmitting(true);
 
     try {
-      const result = verifyStudentPhoneAndResetPassword(
+      const result = changeStudentPasswordWithOldPassword(
         selectedClass,
         cleanName,
-        cleanPhone,
+        cleanOldPass,
         cleanNewPass
       );
 
       if (!result.success) {
-        setErrorMsg(result.error || 'Xác minh thất bại. Vui lòng kiểm tra lại!');
+        setErrorMsg(result.error || 'Đổi mật khẩu thất bại. Vui lòng kiểm tra lại!');
         setIsSubmitting(false);
         return;
       }
@@ -121,7 +126,7 @@ export const StudentChangePasswordModal: React.FC<StudentChangePasswordModalProp
       setTimeout(() => {
         setIsSubmitting(false);
         onClose();
-      }, 1600);
+      }, 1500);
     } catch (err: any) {
       setErrorMsg(err?.message || 'Có lỗi xảy ra, vui lòng thử lại sau!');
       setIsSubmitting(false);
@@ -150,7 +155,7 @@ export const StudentChangePasswordModal: React.FC<StudentChangePasswordModalProp
                 Đổi Mật Khẩu Học Sinh
               </h3>
               <p className="text-xs text-emerald-100 font-medium mt-0.5">
-                Xác minh bằng số điện thoại phụ huynh
+                Chỉ cần nhập mật khẩu cũ & mật khẩu mới
               </p>
             </div>
           </div>
@@ -162,9 +167,9 @@ export const StudentChangePasswordModal: React.FC<StudentChangePasswordModalProp
           <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 leading-relaxed flex items-start gap-2.5">
             <span className="text-base shrink-0">💡</span>
             <div>
-              <b>Mật khẩu ban đầu mặc định là 123.</b>
+              <b>Mật khẩu mặc định ban đầu là 123.</b>
               <div className="text-[11px] text-amber-800 mt-0.5">
-                Để đổi mật khẩu riêng, con/phụ huynh vui lòng nhập chính xác <b>Số điện thoại</b> đã đăng ký với Trung tâm Ngoại Ngữ Nextgen để hệ thống xác thực.
+                Nếu con chưa từng đổi mật khẩu thì mật khẩu cũ là <b>123</b>. Con chỉ cần nhập mật khẩu mới và xác nhận là xong!
               </div>
             </div>
           </div>
@@ -178,179 +183,165 @@ export const StudentChangePasswordModal: React.FC<StudentChangePasswordModalProp
           )}
 
           {successMsg && (
-            <div className="mb-4 p-3.5 bg-emerald-50 border border-emerald-300 rounded-2xl text-xs text-emerald-800 font-bold flex items-start gap-2">
+            <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-800 font-bold flex items-start gap-2 animate-fade-in">
               <span className="text-base shrink-0">✅</span>
               <span className="leading-relaxed">{successMsg}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-3.5">
-            {/* Class selection */}
+          <form onSubmit={handleSubmit} className="space-y-3.5" autoComplete="off">
+            {/* 1. Lớp học */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                1. Lớp học của con
+                1. Lớp Học Của Con
               </label>
               <select
                 value={selectedClass}
                 onChange={e => {
                   setSelectedClass(e.target.value);
+                  setStudentName('');
                   setErrorMsg('');
                 }}
-                disabled={isSubmitting || !!initialClassName}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none text-xs font-bold bg-white text-slate-800 cursor-pointer disabled:bg-slate-100 disabled:text-slate-600"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none text-sm font-bold bg-white text-slate-800 cursor-pointer"
               >
-                {classes.map(c => (
-                  <option key={c.id} value={c.name}>
-                    {c.name}
-                  </option>
-                ))}
+                {classes.length === 0 ? (
+                  <option value="">-- Chưa có lớp --</option>
+                ) : (
+                  classes.map(c => (
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
 
-            {/* Student Name */}
+            {/* 2. Họ và tên học sinh */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                2. Họ và tên của con
+                2. Họ và Tên Của Con
               </label>
+
+              {classStudents.length > 0 && (
+                <div className="mb-2">
+                  <select
+                    value={classStudents.some(s => s.name === studentName) ? studentName : ''}
+                    onChange={e => {
+                      setStudentName(e.target.value);
+                      setErrorMsg('');
+                    }}
+                    className="w-full px-3.5 py-2 rounded-xl border border-emerald-300 bg-emerald-50/50 focus:border-emerald-500 outline-none text-xs font-bold text-emerald-950 cursor-pointer"
+                  >
+                    <option value="">-- Chọn tên con trong danh sách ({classStudents.length} bạn) --</option>
+                    {classStudents.map(s => (
+                      <option key={s.id} value={s.name}>
+                        {s.avatar || '👤'} {s.name} {s.englishName ? `(${s.englishName})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <input
                 type="text"
                 required
                 value={studentName}
-                onChange={e => {
-                  setStudentName(e.target.value);
-                  setErrorMsg('');
-                }}
-                disabled={isSubmitting || !!initialStudentName}
-                placeholder="Ví dụ: Nguyễn Minh Anh"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none text-xs font-bold text-slate-900 placeholder:font-normal placeholder:text-slate-400 disabled:bg-slate-100 disabled:text-slate-600"
+                onChange={e => setStudentName(e.target.value)}
+                placeholder="Hoặc tự gõ họ và tên của con..."
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none text-sm font-bold text-slate-900 placeholder:font-normal placeholder:text-slate-400"
               />
-
-              {/* Quick suggestions if not locked */}
-              {!initialStudentName && classStudents.length > 0 && (
-                <div className="mt-1.5 flex flex-wrap gap-1 max-h-20 overflow-y-auto">
-                  {classStudents.slice(0, 6).map(s => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => {
-                        setStudentName(s.name);
-                        setErrorMsg('');
-                      }}
-                      className={`px-2 py-0.5 rounded-md text-[11px] font-medium border transition-all ${
-                        studentName === s.name
-                          ? 'bg-emerald-500 text-white border-emerald-600'
-                          : 'bg-slate-50 hover:bg-emerald-50 text-slate-700 border-slate-200'
-                      }`}
-                    >
-                      {s.name}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
 
-            {/* Phone Verification */}
+            {/* 3. Mật khẩu cũ (hiện tại) */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
-                <span>3. Số điện thoại phụ huynh (Xác thực)</span>
-                <span className="text-[10px] text-slate-400 font-normal">Đã đăng ký với Nextgen English</span>
-              </label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 text-xs pointer-events-none">
-                  📞
-                </span>
-                <input
-                  type="tel"
-                  required
-                  value={phone}
-                  onChange={e => {
-                    setPhone(e.target.value);
-                    setErrorMsg('');
-                  }}
-                  disabled={isSubmitting}
-                  placeholder="Ví dụ: 0912345678"
-                  className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none text-xs font-bold text-slate-900 placeholder:font-normal placeholder:text-slate-400"
-                  autoComplete="tel"
-                />
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-slate-700">
+                  3. Mật Khẩu Hiện Tại (Mật khẩu cũ)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setOldPassword('123')}
+                  className="text-[11px] text-emerald-700 hover:text-emerald-900 font-bold underline cursor-pointer"
+                >
+                  Điền mặc định (123)
+                </button>
               </div>
-            </div>
-
-            {/* New Password */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                4. Mật khẩu mới
-              </label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 text-xs pointer-events-none">
-                  🔒
-                </span>
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showOldPassword ? 'text' : 'password'}
                   required
-                  value={newPassword}
-                  onChange={e => {
-                    setNewPassword(e.target.value);
-                    setErrorMsg('');
-                  }}
-                  disabled={isSubmitting}
-                  placeholder="Nhập mật khẩu mới (tối thiểu 3 ký tự)..."
-                  className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none text-xs font-bold text-slate-900 placeholder:font-normal placeholder:text-slate-400"
+                  value={oldPassword}
+                  onChange={e => setOldPassword(e.target.value)}
+                  placeholder="Nhập mật khẩu hiện tại (mặc định: 123)..."
+                  className="w-full pl-3.5 pr-10 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none text-sm font-mono font-bold text-slate-800"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
+                  onClick={() => setShowOldPassword(!showOldPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 text-xs font-bold"
                   tabIndex={-1}
                 >
-                  {showPassword ? '🙈' : '👁️'}
+                  {showOldPassword ? 'Ẩn' : 'Hiện'}
                 </button>
               </div>
             </div>
 
-            {/* Confirm New Password */}
+            {/* 4. Mật khẩu mới */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                5. Nhập lại mật khẩu mới
+                4. Mật Khẩu Mới
               </label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 text-xs pointer-events-none">
-                  🔑
-                </span>
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showNewPassword ? 'text' : 'password'}
                   required
-                  value={confirmPassword}
-                  onChange={e => {
-                    setConfirmPassword(e.target.value);
-                    setErrorMsg('');
-                  }}
-                  disabled={isSubmitting}
-                  placeholder="Nhập lại mật khẩu mới để xác nhận..."
-                  className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none text-xs font-bold text-slate-900 placeholder:font-normal placeholder:text-slate-400"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  placeholder="Nhập mật khẩu mới (tối thiểu 3 ký tự)..."
+                  className="w-full pl-3.5 pr-10 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none text-sm font-mono font-bold text-slate-800"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 text-xs font-bold"
+                  tabIndex={-1}
+                >
+                  {showNewPassword ? 'Ẩn' : 'Hiện'}
+                </button>
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="pt-2 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={isSubmitting}
-                className="flex-1 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs transition-all cursor-pointer"
-              >
-                Hủy bỏ
-              </button>
+            {/* 5. Nhập lại mật khẩu mới */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                5. Xác Nhận Mật Khẩu Mới
+              </label>
+              <input
+                type={showNewPassword ? 'text' : 'password'}
+                required
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                placeholder="Nhập lại mật khẩu mới..."
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none text-sm font-mono font-bold text-slate-800"
+              />
+            </div>
+
+            {/* Submit Button */}
+            <div className="pt-2">
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow-lg shadow-emerald-500/20 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {isSubmitting ? (
-                  <span>Đang xác minh...</span>
+                  <>
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Đang cập nhật...</span>
+                  </>
                 ) : (
                   <>
-                    <span>✨ Lưu Mật Khẩu Mới</span>
+                    <span>💾</span>
+                    <span>LƯU MẬT KHẨU MỚI</span>
                   </>
                 )}
               </button>
@@ -361,4 +352,5 @@ export const StudentChangePasswordModal: React.FC<StudentChangePasswordModalProp
     </div>
   );
 };
+
 export default StudentChangePasswordModal;

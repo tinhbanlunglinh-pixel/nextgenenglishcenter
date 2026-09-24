@@ -13,12 +13,14 @@ import {
 import { getCurrentUser } from '../../services/authService';
 import { StudentLessonView } from './StudentLessonView';
 import { StudentLeaderboardHonor } from './StudentLeaderboardHonor';
+import { StudentChangePasswordModal } from './StudentChangePasswordModal';
 
 export const StudentDashboard: React.FC = () => {
   const currentUser = getCurrentUser();
   const isStudentUser = currentUser?.role === 'student';
   const isTeacherUser = currentUser?.role === 'teacher';
   const isGenericStudent = isStudentUser && (currentUser?.username === 'hocsinh' || currentUser?.name === 'Học Sinh');
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
   const [classes, setClasses] = useState<ClassRoom[]>([]);
   const [selectedClassName, setSelectedClassName] = useState<string>(() => {
@@ -26,7 +28,7 @@ export const StudentDashboard: React.FC = () => {
     if (isStudentUser && currentUser?.className) {
       return currentUser.className;
     }
-    const saved = localStorage.getItem('mrs_dung_active_class_name');
+    const saved = localStorage.getItem('nextgen_active_class_name');
     if (saved) return saved;
     const cls = getClasses();
     return cls.length > 0 ? cls[0].name : '';
@@ -37,7 +39,7 @@ export const StudentDashboard: React.FC = () => {
     if (isStudentUser && currentUser?.name && currentUser?.username !== 'hocsinh') {
       return currentUser.name;
     }
-    return localStorage.getItem('mrs_dung_active_student_name') || '';
+    return localStorage.getItem('nextgen_active_student_name') || '';
   });
   const [customNameInput, setCustomNameInput] = useState('');
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -133,7 +135,7 @@ export const StudentDashboard: React.FC = () => {
       setSelectedClassName(activeClsName);
     }
     if (activeClsName) {
-      localStorage.setItem('mrs_dung_active_class_name', activeClsName);
+      localStorage.setItem('nextgen_active_class_name', activeClsName);
     }
 
     const norm = (str?: string) => (str || '').toLowerCase().replace(/^(lớp|lop)\s*/i, '').trim();
@@ -164,14 +166,14 @@ export const StudentDashboard: React.FC = () => {
       const targetClass = searchParams.get('class') || searchParams.get('className');
       if (targetClass) {
         setSelectedClassName(targetClass);
-        localStorage.setItem('mrs_dung_active_class_name', targetClass);
+        localStorage.setItem('nextgen_active_class_name', targetClass);
       }
       if (targetAssignId && !selectedAssignment) {
         const found = getAssignmentById(targetAssignId) || assignments.find(a => a.id === targetAssignId);
         if (found) {
           if (found.targetClassName && found.targetClassName !== 'Tất cả các lớp') {
             setSelectedClassName(found.targetClassName);
-            localStorage.setItem('mrs_dung_active_class_name', found.targetClassName);
+            localStorage.setItem('nextgen_active_class_name', found.targetClassName);
           }
           setSelectedAssignment(found);
         }
@@ -183,15 +185,15 @@ export const StudentDashboard: React.FC = () => {
 
   const handleSelectClass = (clsName: string) => {
     setSelectedClassName(clsName);
-    localStorage.setItem('mrs_dung_active_class_name', clsName);
+    localStorage.setItem('nextgen_active_class_name', clsName);
     // Reset student if class changes
     setStudentName('');
-    localStorage.removeItem('mrs_dung_active_student_name');
+    localStorage.removeItem('nextgen_active_student_name');
   };
 
   const handleSelectStudent = (name: string) => {
     setStudentName(name);
-    localStorage.setItem('mrs_dung_active_student_name', name);
+    localStorage.setItem('nextgen_active_student_name', name);
     setSubmissionVersion(v => v + 1);
   };
 
@@ -250,7 +252,7 @@ export const StudentDashboard: React.FC = () => {
                 <button
                   onClick={() => {
                     setStudentName('');
-                    localStorage.removeItem('mrs_dung_active_student_name');
+                    localStorage.removeItem('nextgen_active_student_name');
                   }}
                   className="text-[11px] text-white/80 hover:text-white underline mt-1 font-bold inline-block"
                 >
@@ -289,6 +291,14 @@ export const StudentDashboard: React.FC = () => {
             <span className="px-3.5 py-2 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold">
               🎯 Đang hiển thị bài tập & kết quả của lớp {selectedClassName}
             </span>
+            <button
+              type="button"
+              onClick={() => setShowChangePasswordModal(true)}
+              className="px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+            >
+              <span>🔑</span>
+              <span>Đổi Mật Khẩu</span>
+            </button>
           </div>
         </div>
       ) : (
@@ -640,6 +650,14 @@ export const StudentDashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Modal: Đổi Mật Khẩu Cho Học Sinh Đang Học */}
+      <StudentChangePasswordModal
+        isOpen={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
+        initialClassName={selectedClassName}
+        initialStudentName={studentName || currentUser?.name || ''}
+      />
     </div>
   );
 };

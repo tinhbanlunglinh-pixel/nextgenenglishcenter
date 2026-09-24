@@ -241,7 +241,7 @@ export const MegaChallenge: React.FC<MegaChallengeProps> = ({
     setCurrentListening(listeningData);
   }, [listeningData]);
 
-  const isTeacherActive = isTeacher ?? (typeof window !== 'undefined' && (localStorage.getItem('mrs_dung_user_role') === 'teacher' || getCurrentUser()?.role === 'teacher'));
+  const isTeacherActive = isTeacher ?? (typeof window !== 'undefined' && (localStorage.getItem('nextgen_user_role') === 'teacher' || getCurrentUser()?.role === 'teacher'));
 
   const [fixingQuestion, setFixingQuestion] = useState<{
     type: 'multipleChoice' | 'readingMC' | 'pronunciation' | 'scramble' | 'vocabTranslation' | 'trueFalse' | 'fillBlank' | 'readingFill' | 'listening';

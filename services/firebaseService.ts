@@ -1,6 +1,6 @@
 import { FirebaseConfig } from '../types';
 
-const FIREBASE_CONFIG_KEY = 'mrs_dung_firebase_config';
+const FIREBASE_CONFIG_KEY = 'nextgen_firebase_config';
 
 /**
  * Default Firebase Configuration for Nextgen English
@@ -176,7 +176,7 @@ export const syncSingleSubmissionToFirebase = async (submission: any, retryCount
   }
 };
 
-const PENDING_SUBMISSIONS_KEY = 'mrs_dung_pending_submissions';
+const PENDING_SUBMISSIONS_KEY = 'nextgen_pending_submissions';
 
 let pendingSyncInterval: any = null;
 
@@ -407,7 +407,7 @@ export const pullSubmissionsOnlyFromFirebase = async (): Promise<boolean> => {
     const cloudSubmissions = normalizeFirebaseList(raw);
     if (!Array.isArray(cloudSubmissions) || cloudSubmissions.length === 0) return false;
 
-    const rawLocal = localStorage.getItem('mrs_dung_submissions');
+    const rawLocal = localStorage.getItem('nextgen_submissions');
     let localList: any[] = [];
     try {
       if (rawLocal) localList = JSON.parse(rawLocal);
@@ -439,7 +439,7 @@ export const pullSubmissionsOnlyFromFirebase = async (): Promise<boolean> => {
     });
 
     const merged = Array.from(map.values());
-    localStorage.setItem('mrs_dung_submissions', JSON.stringify(merged));
+    localStorage.setItem('nextgen_submissions', JSON.stringify(merged));
     return hasNewFromCloud;
   } catch {
     return false;
@@ -462,9 +462,11 @@ export const pullAllFromFirebase = async (): Promise<boolean> => {
       rawAttendance
     ] = await Promise.all([
       fetchFromFirebaseIfConfigured<any>('classes'),
+      fetchFromFirebaseIfConfigured<any>('deleted_classes'),
       fetchFromFirebaseIfConfigured<any>('students'),
       fetchFromFirebaseIfConfigured<any>('deleted_students'),
       fetchFromFirebaseIfConfigured<any>('assignments'),
+      fetchFromFirebaseIfConfigured<any>('deleted_assignments'),
       fetchFromFirebaseIfConfigured<any>('submissions'),
       fetchFromFirebaseIfConfigured<any>('monthly_reports'),
       fetchFromFirebaseIfConfigured<any>('class_schedules'),
@@ -472,16 +474,18 @@ export const pullAllFromFirebase = async (): Promise<boolean> => {
     ]);
 
     const cloudClasses = normalizeFirebaseList(rawClasses);
+    const cloudDeletedClasses = normalizeFirebaseList(rawDeletedClasses);
     const cloudStudents = normalizeFirebaseList(rawStudents);
     const cloudDeletedStudents = normalizeFirebaseList(rawDeletedStudents);
     const cloudAssignments = normalizeFirebaseList(rawAssignments);
+    const cloudDeletedAssignments = normalizeFirebaseList(rawDeletedAssignments);
     const cloudSubmissions = normalizeFirebaseList(rawSubmissions);
     const cloudMonthlyReports = normalizeFirebaseList(rawMonthlyReports);
     const cloudSchedules = normalizeFirebaseList(rawSchedules);
     const cloudAttendance = normalizeFirebaseList(rawAttendance);
 
     // 1. Đồng bộ & hợp nhất danh sách học sinh đã xóa vĩnh viễn (nghỉ học / tombstone)
-    const localDeletedRaw = localStorage.getItem('mrs_dung_deleted_students');
+    const localDeletedRaw = localStorage.getItem('nextgen_deleted_students');
     let localDeletedList: any[] = [];
     try {
       if (localDeletedRaw) localDeletedList = JSON.parse(localDeletedRaw);
@@ -504,11 +508,47 @@ export const pullAllFromFirebase = async (): Promise<boolean> => {
       }
     });
     const mergedDeleted = Array.from(deletedMap.values());
-    localStorage.setItem('mrs_dung_deleted_students', JSON.stringify(mergedDeleted));
+    localStorage.setItem('nextgen_deleted_students', JSON.stringify(mergedDeleted));
     if (hasNewDeletedToPush) {
       syncToFirebaseIfConfigured('deleted_students', mergedDeleted);
     }
     const deletedIdsSet = new Set<string>(mergedDeleted.map(d => String(d.id)));
+
+    // 1b. Đồng bộ & hợp nhất danh sách LỚP HỌC đã xóa
+    const localDeletedClassesRaw = localStorage.getItem('nextgen_deleted_classes');
+    let localDeletedClasses: string[] = [];
+    try {
+      if (localDeletedClassesRaw) localDeletedClasses = JSON.parse(localDeletedClassesRaw);
+    } catch {
+      localDeletedClasses = [];
+    }
+    const mergedDeletedClasses = Array.from(new Set([
+      ...cloudDeletedClasses.map(c => typeof c === 'string' ? c : c?.id).filter(Boolean),
+      ...localDeletedClasses
+    ]));
+    localStorage.setItem('nextgen_deleted_classes', JSON.stringify(mergedDeletedClasses));
+    if (mergedDeletedClasses.length > cloudDeletedClasses.length) {
+      syncToFirebaseIfConfigured('deleted_classes', mergedDeletedClasses);
+    }
+    const deletedClassesSet = new Set<string>(mergedDeletedClasses.map(String));
+
+    // 1c. Đồng bộ & hợp nhất danh sách BÀI TẬP đã xóa
+    const localDeletedAssignmentsRaw = localStorage.getItem('nextgen_deleted_assignments');
+    let localDeletedAssignments: string[] = [];
+    try {
+      if (localDeletedAssignmentsRaw) localDeletedAssignments = JSON.parse(localDeletedAssignmentsRaw);
+    } catch {
+      localDeletedAssignments = [];
+    }
+    const mergedDeletedAssignments = Array.from(new Set([
+      ...cloudDeletedAssignments.map(a => typeof a === 'string' ? a : a?.id).filter(Boolean),
+      ...localDeletedAssignments
+    ]));
+    localStorage.setItem('nextgen_deleted_assignments', JSON.stringify(mergedDeletedAssignments));
+    if (mergedDeletedAssignments.length > cloudDeletedAssignments.length) {
+      syncToFirebaseIfConfigured('deleted_assignments', mergedDeletedAssignments);
+    }
+    const deletedAssignmentsSet = new Set<string>(mergedDeletedAssignments.map(String));
 
     let hasNewData = false;
 
@@ -517,24 +557,24 @@ export const pullAllFromFirebase = async (): Promise<boolean> => {
 
     const isMockItem = (key: string, item: any): boolean => {
       if (!item || !item.id) return true;
-      if (key === 'mrs_dung_classes') {
-        return MOCK_CLASS_IDS.has(item.id);
+      if (key === 'nextgen_classes') {
+        return MOCK_CLASS_IDS.has(item.id) || deletedClassesSet.has(String(item.id));
       }
-      if (key === 'mrs_dung_students') {
+      if (key === 'nextgen_students') {
         return MOCK_STUDENT_IDS.has(item.id) || MOCK_CLASS_IDS.has(item.classId) || deletedIdsSet.has(String(item.id));
       }
-      if (key === 'mrs_dung_submissions') {
+      if (key === 'nextgen_submissions') {
         return item.id.startsWith('sub_seed_') || (item.studentId && (MOCK_STUDENT_IDS.has(item.studentId) || deletedIdsSet.has(String(item.studentId))));
       }
-      if (key === 'mrs_dung_assignments') {
-        return item.id === 'assign_unit1_school';
+      if (key === 'nextgen_assignments') {
+        return item.id === 'assign_unit1_school' || deletedAssignmentsSet.has(String(item.id));
       }
       return false;
     };
 
     // Helper to merge lists by id, preserving teacher edits and local unsaved changes
     const mergeById = (localKey: string, cloudList: any[], timeField: string = 'updatedAt'): boolean => {
-      if (!Array.isArray(cloudList) && localKey !== 'mrs_dung_students') return false;
+      if (!Array.isArray(cloudList) && localKey !== 'nextgen_students') return false;
       const safeCloudList = Array.isArray(cloudList) ? cloudList : [];
       const rawLocal = localStorage.getItem(localKey);
       let localList: any[] = [];
@@ -548,8 +588,14 @@ export const pullAllFromFirebase = async (): Promise<boolean> => {
       const map = new Map<string, any>();
       safeCloudList.forEach(item => {
         if (item && item.id && !isMockItem(localKey, item)) {
-          // Bỏ qua tuyệt đối nếu học sinh đã bị xóa vĩnh viễn (nghỉ học)
-          if (localKey === 'mrs_dung_students' && deletedIdsSet.has(String(item.id))) {
+          // Bỏ qua tuyệt đối nếu thực thể đã bị quản trị/giáo viên xóa
+          if (localKey === 'nextgen_students' && deletedIdsSet.has(String(item.id))) {
+            return;
+          }
+          if (localKey === 'nextgen_classes' && deletedClassesSet.has(String(item.id))) {
+            return;
+          }
+          if (localKey === 'nextgen_assignments' && deletedAssignmentsSet.has(String(item.id))) {
             return;
           }
           map.set(String(item.id), item);
@@ -560,8 +606,14 @@ export const pullAllFromFirebase = async (): Promise<boolean> => {
       localList.forEach(item => {
         if (item && item.id && !isMockItem(localKey, item)) {
           const idStr = String(item.id);
-          // Bỏ qua tuyệt đối nếu học sinh đã bị xóa vĩnh viễn (nghỉ học)
-          if (localKey === 'mrs_dung_students' && deletedIdsSet.has(idStr)) {
+          // Bỏ qua tuyệt đối nếu thực thể đã bị quản trị/giáo viên xóa
+          if (localKey === 'nextgen_students' && deletedIdsSet.has(idStr)) {
+            return;
+          }
+          if (localKey === 'nextgen_classes' && deletedClassesSet.has(idStr)) {
+            return;
+          }
+          if (localKey === 'nextgen_assignments' && deletedAssignmentsSet.has(idStr)) {
             return;
           }
 
@@ -573,7 +625,7 @@ export const pullAllFromFirebase = async (): Promise<boolean> => {
             const localTime = new Date(item.teacherModifiedAt || item[timeField] || item.submittedAt || item.updatedAt || item.createdAt || 0).getTime();
             const cloudTime = new Date(cloudItem.teacherModifiedAt || cloudItem[timeField] || cloudItem.submittedAt || cloudItem.updatedAt || cloudItem.createdAt || 0).getTime();
 
-            // ⭐️ NGUYÊN TẮC VÀNG: Luôn ưu tiên lưu lại thông tin cuối cùng của giáo viên sửa trên website
+            // ⭐️ NGUYÊN TẮC VÀNG: Luôn ưu tiên lưu lại thông tin cuối cùng của giáo viên/quản trị viên sửa trên website
             if (item.teacherModified || localTime >= cloudTime) {
               map.set(idStr, item);
               if (item.teacherModified || localTime > cloudTime) {
@@ -592,7 +644,7 @@ export const pullAllFromFirebase = async (): Promise<boolean> => {
       }
 
       if (needPushUnsynced) {
-        if (localKey === 'mrs_dung_submissions') {
+        if (localKey === 'nextgen_submissions') {
           // Push only new submissions individually without overwriting the whole collection
           localList.forEach(item => {
             if (item && item.id && !isMockItem(localKey, item) && !safeCloudList.some(c => c && c.id === item.id)) {
@@ -600,20 +652,20 @@ export const pullAllFromFirebase = async (): Promise<boolean> => {
             }
           });
         } else {
-          const path = localKey.replace('mrs_dung_', '');
+          const path = localKey.replace('nextgen_', '').replace('mrs_dung_', '');
           syncToFirebaseIfConfigured(path, merged);
         }
       }
       return true;
     };
 
-    if (mergeById('mrs_dung_classes', cloudClasses)) hasNewData = true;
-    if (mergeById('mrs_dung_students', cloudStudents)) hasNewData = true;
-    if (mergeById('mrs_dung_assignments', cloudAssignments)) hasNewData = true;
-    if (mergeById('mrs_dung_submissions', cloudSubmissions, 'submittedAt')) hasNewData = true;
-    if (mergeById('mrs_dung_monthly_reports', cloudMonthlyReports)) hasNewData = true;
-    if (mergeById('mrs_dung_class_schedules', cloudSchedules)) hasNewData = true;
-    if (mergeById('mrs_dung_attendance_records', cloudAttendance, 'date')) hasNewData = true;
+    if (mergeById('nextgen_classes', cloudClasses)) hasNewData = true;
+    if (mergeById('nextgen_students', cloudStudents)) hasNewData = true;
+    if (mergeById('nextgen_assignments', cloudAssignments)) hasNewData = true;
+    if (mergeById('nextgen_submissions', cloudSubmissions, 'submittedAt')) hasNewData = true;
+    if (mergeById('nextgen_monthly_reports', cloudMonthlyReports)) hasNewData = true;
+    if (mergeById('nextgen_class_schedules', cloudSchedules)) hasNewData = true;
+    if (mergeById('nextgen_attendance_records', cloudAttendance, 'date')) hasNewData = true;
 
     // Background push any offline pending submissions
     syncPendingSubmissions();

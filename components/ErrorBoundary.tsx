@@ -34,14 +34,14 @@ export class ErrorBoundary extends Component<Props, State> {
   private handleClearDataAndReload = () => {
     try {
       // Keep essential credentials if possible or clean corrupted state
-      const savedLogin = localStorage.getItem('mrs_dung_teacher_login');
-      const savedCreds = localStorage.getItem('mrs_dung_teacher_custom_creds');
+      const savedLogin = localStorage.getItem('nextgen_teacher_login');
+      const savedCreds = localStorage.getItem('nextgen_teacher_custom_creds');
       sessionStorage.clear();
-      localStorage.removeItem('mrs_dung_submissions');
-      localStorage.removeItem('mrs_dung_active_assignments');
+      localStorage.removeItem('nextgen_submissions');
+      localStorage.removeItem('nextgen_active_assignments');
       // If severe, remove all non-credential keys
-      if (savedLogin) localStorage.setItem('mrs_dung_teacher_login', savedLogin);
-      if (savedCreds) localStorage.setItem('mrs_dung_teacher_custom_creds', savedCreds);
+      if (savedLogin) localStorage.setItem('nextgen_teacher_login', savedLogin);
+      if (savedCreds) localStorage.setItem('nextgen_teacher_custom_creds', savedCreds);
     } catch {}
     window.location.href = window.location.pathname;
   };

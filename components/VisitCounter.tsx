@@ -42,7 +42,7 @@ export const VisitCounter: React.FC<{ compact?: boolean }> = ({ compact = false 
     const user = getCurrentUser();
     const studentName = (user && user.role === 'student')
       ? user.name
-      : (typeof window !== 'undefined' ? localStorage.getItem('mrs_dung_active_student_name') || '' : '');
+      : (typeof window !== 'undefined' ? localStorage.getItem('nextgen_active_student_name') || '' : '');
 
     const realData = getRealLearningStats(studentName);
     setStats(realData);

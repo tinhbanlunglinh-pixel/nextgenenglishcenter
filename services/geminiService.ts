@@ -17,8 +17,8 @@ const GEMINI_KEY_STORAGE = 'gemini_api_key';
 const AGENT_PLATFORM_KEY_STORAGE = 'agent_platform_api_key';
 const PROVIDER_STORAGE = 'google_ai_provider';
 const PROVIDER_SOURCE_STORAGE = 'google_ai_provider_selection_source';
-const MODEL_STORAGE = 'mrs_dung_selected_model';
-const LEGACY_KEY_STORAGE = 'mrs_dung_api_key'; // For backward compatibility
+const MODEL_STORAGE = 'nextgen_selected_model';
+const LEGACY_KEY_STORAGE = 'nextgen_api_key'; // For backward compatibility
 
 // Provider helpers
 export const getAiProvider = (): AiProvider => {

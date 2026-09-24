@@ -58,6 +58,11 @@ export const StudentManagement: React.FC = () => {
   // Edit student state
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
 
+  // Teacher password management state
+  const [studentForPasswordModal, setStudentForPasswordModal] = useState<Student | null>(null);
+  const [teacherNewPassInput, setTeacherNewPassInput] = useState('123');
+  const [showTeacherPassModal, setShowTeacherPassModal] = useState(false);
+
   // Permanent delete confirmation state (Học sinh nghỉ học / chuyển trường)
   const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
   const [deleteReason, setDeleteReason] = useState('Học sinh nghỉ học');
@@ -421,6 +426,27 @@ export const StudentManagement: React.FC = () => {
     restoreDeletedStudent(id);
     refresh();
     showToast(`🎉 Đã khôi phục thành công học sinh "${name}" trở lại lớp!`);
+  };
+
+  // 14. Giáo viên mở modal cấp/đổi mật khẩu cho học sinh
+  const handleOpenPasswordModal = (s: Student) => {
+    setStudentForPasswordModal(s);
+    setTeacherNewPassInput(s.password || '123');
+    setShowTeacherPassModal(true);
+  };
+
+  // 14b. Giáo viên lưu mật khẩu mới cho học sinh
+  const handleSaveStudentPasswordByTeacher = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!studentForPasswordModal) return;
+    const cleanPass = teacherNewPassInput.trim() || '123';
+    updateStudent(studentForPasswordModal.id, {
+      password: cleanPass
+    });
+    showToast(`✓ Đã cấp/đổi mật khẩu cho học sinh "${studentForPasswordModal.name}" thành "${cleanPass}"!`);
+    setShowTeacherPassModal(false);
+    setStudentForPasswordModal(null);
+    refresh();
   };
 
   // Class assignments for selected class
@@ -920,16 +946,16 @@ export const StudentManagement: React.FC = () => {
                           </span>
                         </td>
                         <td className="py-3.5 px-3">
-                          <span
-                            onClick={() => {
-                              navigator.clipboard.writeText(s.password || '123');
-                              alert(`Đã copy mật khẩu của ${s.name}: ${s.password || '123'}`);
-                            }}
-                            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-mono font-bold text-xs cursor-pointer transition-all"
-                            title="Click để copy mật khẩu"
+                          <button
+                            type="button"
+                            onClick={() => handleOpenPasswordModal(s)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-mono font-bold text-xs cursor-pointer transition-all shadow-2xs group"
+                            title="Bấm để đổi hoặc cấp lại mật khẩu cho học sinh"
                           >
-                            <span>🔑</span> {s.password || '123'}
-                          </span>
+                            <span>🔑</span>
+                            <span>{s.password || '123'}</span>
+                            <span className="text-[10px] text-amber-600 underline ml-0.5">Đổi</span>
+                          </button>
                         </td>
                         <td className="py-3.5 px-4 text-xs font-semibold text-slate-600">
                           {s.phone ? (
@@ -966,7 +992,16 @@ export const StudentManagement: React.FC = () => {
                           {s.notes || <span className="text-slate-300">Chưa có ghi chú</span>}
                         </td>
                         <td className="py-3.5 px-4 text-right">
-                          <div className="inline-flex items-center gap-2">
+                          <div className="inline-flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenPasswordModal(s)}
+                              className="p-1.5 hover:bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-2xs cursor-pointer"
+                              title="Cấp lại hoặc đổi mật khẩu cho học sinh này"
+                            >
+                              <span>🔑</span>
+                              <span>Mật khẩu</span>
+                            </button>
                             <button
                               onClick={() => setEditingStudent(s)}
                               className="p-1.5 hover:bg-slate-100 text-slate-600 rounded-lg text-xs font-bold transition-all"
@@ -1692,6 +1727,106 @@ export const StudentManagement: React.FC = () => {
                 Đóng
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Giáo Viên Cấp / Đổi Mật Khẩu Cho Học Sinh */}
+      {showTeacherPassModal && studentForPasswordModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-fade-in border border-slate-100">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">🔑</span>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">Cấp / Đổi Mật Khẩu Học Sinh</h3>
+                  <p className="text-xs text-slate-500">Giáo viên quản trị cấp lại hoặc đổi mật khẩu</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowTeacherPassModal(false);
+                  setStudentForPasswordModal(null);
+                }}
+                className="text-slate-400 hover:text-slate-600 font-bold p-1 text-base cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Thông tin học sinh */}
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center gap-3">
+              <span className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-xl shadow-xs">
+                {studentForPasswordModal.avatar || '🎒'}
+              </span>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm font-black text-slate-900 truncate">
+                  {studentForPasswordModal.name} {studentForPasswordModal.englishName ? `(${studentForPasswordModal.englishName})` : ''}
+                </h4>
+                <p className="text-xs text-slate-500">
+                  Lớp: <span className="font-bold text-brand-700">{studentForPasswordModal.className}</span>
+                </p>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] text-slate-400 block font-bold uppercase">Mật khẩu hiện tại</span>
+                <span className="text-xs font-mono font-black text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                  {studentForPasswordModal.password || '123'}
+                </span>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveStudentPasswordByTeacher} className="space-y-3">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Mật khẩu mới cho học sinh
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setTeacherNewPassInput('123')}
+                    className="text-xs text-brand-600 hover:text-brand-800 font-bold underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>🔄</span>
+                    <span>Đặt lại về 123 (Mặc định)</span>
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  required
+                  value={teacherNewPassInput}
+                  onChange={e => setTeacherNewPassInput(e.target.value)}
+                  placeholder="Nhập mật khẩu mới..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-mono font-bold outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10"
+                  autoFocus
+                />
+              </div>
+
+              <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2">
+                <span>⭐</span>
+                <span>Mật khẩu sau khi đổi sẽ được ưu tiên lưu trữ và có hiệu lực ngay cho học sinh!</span>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowTeacherPassModal(false);
+                    setStudentForPasswordModal(null);
+                  }}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <span>💾</span>
+                  <span>Lưu Mật Khẩu</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

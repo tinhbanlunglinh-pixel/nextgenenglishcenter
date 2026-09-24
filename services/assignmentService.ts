@@ -34,20 +34,22 @@ import {
 import { ensureCompletePracticeContent } from '../utils/practiceBuilder';
 
 // Storage keys
-const CLASSES_KEY = 'mrs_dung_classes';
-const STUDENTS_KEY = 'mrs_dung_students';
-export const DELETED_STUDENTS_KEY = 'mrs_dung_deleted_students';
-const ASSIGNMENTS_KEY = 'mrs_dung_assignments';
-const SUBMISSIONS_KEY = 'mrs_dung_submissions';
-const MONTHLY_REPORTS_KEY = 'mrs_dung_monthly_reports';
-const WEEKLY_REPORTS_KEY = 'mrs_dung_weekly_reports';
-const ANNUAL_REPORTS_KEY = 'mrs_dung_annual_reports';
-const CLASS_SCHEDULES_KEY = 'mrs_dung_class_schedules';
-const ATTENDANCE_RECORDS_KEY = 'mrs_dung_attendance_records';
-const DATA_CLEANED_KEY = 'mrs_dung_data_cleaned';
+const CLASSES_KEY = 'nextgen_classes';
+export const DELETED_CLASSES_KEY = 'nextgen_deleted_classes';
+const STUDENTS_KEY = 'nextgen_students';
+export const DELETED_STUDENTS_KEY = 'nextgen_deleted_students';
+const ASSIGNMENTS_KEY = 'nextgen_assignments';
+export const DELETED_ASSIGNMENTS_KEY = 'nextgen_deleted_assignments';
+const SUBMISSIONS_KEY = 'nextgen_submissions';
+const MONTHLY_REPORTS_KEY = 'nextgen_monthly_reports';
+const WEEKLY_REPORTS_KEY = 'nextgen_weekly_reports';
+const ANNUAL_REPORTS_KEY = 'nextgen_annual_reports';
+const CLASS_SCHEDULES_KEY = 'nextgen_class_schedules';
+const ATTENDANCE_RECORDS_KEY = 'nextgen_attendance_records';
+const DATA_CLEANED_KEY = 'nextgen_data_cleaned';
 
 // BroadcastChannel for instant multi-tab sync
-const SYNC_CHANNEL_NAME = 'mrs_dung_sync_channel';
+const SYNC_CHANNEL_NAME = 'nextgen_sync_channel';
 let broadcastChannel: BroadcastChannel | null = null;
 
 if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
@@ -64,7 +66,7 @@ export const notifySync = (type: string, data?: any) => {
   }
   // Also dispatch CustomEvent on window for single-tab state reactivity
   if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('mrs_dung_local_sync', { detail: { type, data } }));
+    window.dispatchEvent(new CustomEvent('nextgen_local_sync', { detail: { type, data } }));
   }
 };
 
@@ -85,7 +87,7 @@ export const subscribeToSync = (callback: (event: { type: string; data?: any }) 
     broadcastChannel.addEventListener('message', handleMessage);
   }
   if (typeof window !== 'undefined') {
-    window.addEventListener('mrs_dung_local_sync', handleLocalEvent);
+    window.addEventListener('nextgen_local_sync', handleLocalEvent);
   }
 
   return () => {
@@ -93,7 +95,7 @@ export const subscribeToSync = (callback: (event: { type: string; data?: any }) 
       broadcastChannel.removeEventListener('message', handleMessage);
     }
     if (typeof window !== 'undefined') {
-      window.removeEventListener('mrs_dung_local_sync', handleLocalEvent);
+      window.removeEventListener('nextgen_local_sync', handleLocalEvent);
     }
   };
 };
@@ -135,21 +137,40 @@ export const clearAllDemoData = async (): Promise<void> => {
   if (typeof window === 'undefined') return;
   localStorage.setItem(DATA_CLEANED_KEY, 'true');
   localStorage.setItem(CLASSES_KEY, JSON.stringify([]));
+  localStorage.setItem(DELETED_CLASSES_KEY, JSON.stringify([]));
   localStorage.setItem(STUDENTS_KEY, JSON.stringify([]));
   localStorage.setItem(DELETED_STUDENTS_KEY, JSON.stringify([]));
   localStorage.setItem(ASSIGNMENTS_KEY, JSON.stringify([]));
+  localStorage.setItem(DELETED_ASSIGNMENTS_KEY, JSON.stringify([]));
   localStorage.setItem(SUBMISSIONS_KEY, JSON.stringify([]));
   localStorage.setItem(MONTHLY_REPORTS_KEY, JSON.stringify([]));
   localStorage.setItem(WEEKLY_REPORTS_KEY, JSON.stringify([]));
+  localStorage.setItem(ANNUAL_REPORTS_KEY, JSON.stringify([]));
   localStorage.setItem(CLASS_SCHEDULES_KEY, JSON.stringify([]));
   localStorage.setItem(ATTENDANCE_RECORDS_KEY, JSON.stringify([]));
+  localStorage.setItem(ADMIN_NOTIFICATIONS_KEY, JSON.stringify([]));
+  localStorage.removeItem('lesson_history');
+
+  // Also clean old legacy mrs_dung keys
+  const legacyKeys = [
+    'mrs_dung_classes', 'mrs_dung_students', 'mrs_dung_deleted_students',
+    'mrs_dung_assignments', 'mrs_dung_submissions', 'mrs_dung_monthly_reports',
+    'mrs_dung_weekly_reports', 'mrs_dung_annual_reports', 'mrs_dung_class_schedules',
+    'mrs_dung_attendance_records', 'mrs_dung_admin_notifications', 'mrs_dung_active_assignments',
+    'mrs_dung_active_student_name', 'mrs_dung_active_class_name', 'mrs_dung_selected_student',
+    'mrs_dung_selected_class', 'mrs_dung_user_role', 'mrs_dung_report_zoom',
+    'nextgen_students_cleared_v1'
+  ];
+  legacyKeys.forEach(k => localStorage.removeItem(k));
 
   // Sync empty arrays to Firebase so cloud is also cleaned
   await Promise.all([
     syncToFirebaseIfConfigured('classes', []),
+    syncToFirebaseIfConfigured('deleted_classes', []),
     syncToFirebaseIfConfigured('students', []),
     syncToFirebaseIfConfigured('deleted_students', []),
     syncToFirebaseIfConfigured('assignments', []),
+    syncToFirebaseIfConfigured('deleted_assignments', []),
     syncToFirebaseIfConfigured('submissions', []),
     syncToFirebaseIfConfigured('monthly_reports', []),
     syncToFirebaseIfConfigured('weekly_reports', []),
@@ -160,42 +181,76 @@ export const clearAllDemoData = async (): Promise<void> => {
   notifySync('data_reset_all', { timestamp: Date.now() });
 };
 
-// ── Nextgen Student List Initialization & Cleanup ──
-const NEXTGEN_STUDENTS_RESET_KEY = 'nextgen_students_cleared_v1';
+// ── Nextgen Master Clean Slate (Wipe repository, classes, students, notifications, visits) ──
+const NEXTGEN_MASTER_CLEAN_KEY = 'nextgen_master_cleaned_v3';
 
-export const ensureNextgenStudentsReset = (): void => {
+export const ensureNextgenMasterClean = (): void => {
   if (typeof window === 'undefined') return;
   try {
-    if (localStorage.getItem(NEXTGEN_STUDENTS_RESET_KEY) !== 'true') {
+    if (localStorage.getItem(NEXTGEN_MASTER_CLEAN_KEY) !== 'true') {
+      // 1. Clean all legacy mrs_dung keys
+      try {
+        const allKeys = Object.keys(localStorage);
+        allKeys.forEach(k => {
+          if (k.startsWith('mrs_dung_') && !k.includes('firebase_config') && !k.includes('credentials')) {
+            localStorage.removeItem(k);
+          }
+        });
+      } catch {}
+
+      // 2. Wipe repository, classes, students, notifications, visits
+      localStorage.setItem(CLASSES_KEY, JSON.stringify([]));
+      localStorage.setItem(DELETED_CLASSES_KEY, JSON.stringify([]));
       localStorage.setItem(STUDENTS_KEY, JSON.stringify([]));
       localStorage.setItem(DELETED_STUDENTS_KEY, JSON.stringify([]));
-      localStorage.setItem(NEXTGEN_STUDENTS_RESET_KEY, 'true');
+      localStorage.setItem(ASSIGNMENTS_KEY, JSON.stringify([]));
+      localStorage.setItem(DELETED_ASSIGNMENTS_KEY, JSON.stringify([]));
+      localStorage.setItem(SUBMISSIONS_KEY, JSON.stringify([]));
+      localStorage.setItem(MONTHLY_REPORTS_KEY, JSON.stringify([]));
+      localStorage.setItem(WEEKLY_REPORTS_KEY, JSON.stringify([]));
+      localStorage.setItem(ANNUAL_REPORTS_KEY, JSON.stringify([]));
+      localStorage.setItem(CLASS_SCHEDULES_KEY, JSON.stringify([]));
+      localStorage.setItem(ATTENDANCE_RECORDS_KEY, JSON.stringify([]));
+      localStorage.setItem(ADMIN_NOTIFICATIONS_KEY, JSON.stringify([]));
+      localStorage.removeItem('lesson_history');
+      localStorage.removeItem('nextgen_active_student_name');
+      localStorage.removeItem('nextgen_active_class_name');
+      localStorage.removeItem('nextgen_selected_student');
+      localStorage.removeItem('nextgen_selected_class');
 
-      // Reset studentCount for all classes
-      const raw = localStorage.getItem(CLASSES_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          const updated = parsed.map((c: any) => ({ ...c, studentCount: 0 }));
-          localStorage.setItem(CLASSES_KEY, JSON.stringify(updated));
-        }
-      }
+      // 3. Set marker
+      localStorage.setItem(NEXTGEN_MASTER_CLEAN_KEY, 'true');
+      localStorage.setItem(DATA_CLEANED_KEY, 'true');
 
-      notifySync('students_updated', []);
+      // 4. Clean Firebase cloud
+      Promise.all([
+        syncToFirebaseIfConfigured('classes', []),
+        syncToFirebaseIfConfigured('deleted_classes', []),
+        syncToFirebaseIfConfigured('students', []),
+        syncToFirebaseIfConfigured('deleted_students', []),
+        syncToFirebaseIfConfigured('assignments', []),
+        syncToFirebaseIfConfigured('deleted_assignments', []),
+        syncToFirebaseIfConfigured('submissions', []),
+        syncToFirebaseIfConfigured('monthly_reports', []),
+        syncToFirebaseIfConfigured('weekly_reports', []),
+        syncToFirebaseIfConfigured('class_schedules', []),
+        syncToFirebaseIfConfigured('attendance_records', [])
+      ]).catch(e => console.warn('Firebase wipe note:', e));
+
+      notifySync('data_reset_all', { timestamp: Date.now() });
     }
   } catch (err) {
-    console.warn('ensureNextgenStudentsReset error:', err);
+    console.warn('ensureNextgenMasterClean error:', err);
   }
 };
 
 // Run automatically on module load
-ensureNextgenStudentsReset();
+ensureNextgenMasterClean();
 
 export const clearAllStudents = async (): Promise<void> => {
   if (typeof window === 'undefined') return;
   localStorage.setItem(STUDENTS_KEY, JSON.stringify([]));
   localStorage.setItem(DELETED_STUDENTS_KEY, JSON.stringify([]));
-  localStorage.setItem(NEXTGEN_STUDENTS_RESET_KEY, 'true');
 
   const classes = getClasses();
   const updatedClasses = classes.map(c => ({ ...c, studentCount: 0 }));
@@ -222,6 +277,25 @@ const MOCK_CLASS_IDS = new Set(['class_6a1', 'class_6a2', 'class_7b1', 'class_8a
 const MOCK_STUDENT_IDS = new Set(Array.from({ length: 17 }, (_, i) => `std_${i + 1}`));
 
 // ==================== CLASS MANAGEMENT ====================
+export const getDeletedClasses = (): string[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(DELETED_CLASSES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+export const saveDeletedClasses = (ids: string[]): void => {
+  if (typeof window === 'undefined') return;
+  const deduped = Array.from(new Set(ids));
+  localStorage.setItem(DELETED_CLASSES_KEY, JSON.stringify(deduped));
+  syncToFirebaseIfConfigured('deleted_classes', deduped);
+};
+
 export const getClasses = (): ClassRoom[] => {
   if (typeof window === 'undefined') return [];
   try {
@@ -229,7 +303,8 @@ export const getClasses = (): ClassRoom[] => {
     if (raw !== null) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        return parsed.filter(c => c && c.id && !MOCK_CLASS_IDS.has(c.id));
+        const deletedIds = new Set(getDeletedClasses());
+        return parsed.filter(c => c && c.id && !MOCK_CLASS_IDS.has(c.id) && !deletedIds.has(c.id));
       }
       return [];
     }
@@ -241,7 +316,8 @@ export const getClasses = (): ClassRoom[] => {
 
 export const saveClasses = (classes: ClassRoom[]): void => {
   if (typeof window === 'undefined') return;
-  const cleanClasses = classes.filter(c => c && c.id && !MOCK_CLASS_IDS.has(c.id));
+  const deletedIds = new Set(getDeletedClasses());
+  const cleanClasses = classes.filter(c => c && c.id && !MOCK_CLASS_IDS.has(c.id) && !deletedIds.has(c.id));
   localStorage.setItem(CLASSES_KEY, JSON.stringify(cleanClasses));
   notifySync('classes_updated', cleanClasses);
   syncToFirebaseIfConfigured('classes', cleanClasses);
@@ -346,13 +422,17 @@ export const addClass = (
   customSlots?: WeeklyTimeSlot[]
 ): ClassRoom => {
   const current = getClasses();
+  const now = new Date().toISOString();
   const newClass: ClassRoom = {
     id: `class_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
     name: name.trim(),
     grade,
     description: description.trim(),
     studentCount: 0,
-    createdAt: new Date().toISOString()
+    createdAt: now,
+    updatedAt: now,
+    teacherModifiedAt: now,
+    teacherModified: true
   };
   const updated = [...current, newClass];
   saveClasses(updated);
@@ -367,7 +447,9 @@ export const addClass = (
       slots: customSlots,
       roomDefault: customSlots[0]?.room || 'Phòng A1',
       notes: `Lịch học ${newClass.name}`,
-      updatedAt: new Date().toISOString()
+      updatedAt: now,
+      teacherModifiedAt: now,
+      teacherModified: true
     };
     saveClassSchedule(schedConfig);
   } else if (description.trim()) {
@@ -381,7 +463,9 @@ export const addClass = (
         slots: parsed.slots,
         roomDefault: 'Phòng A1',
         notes: `Lịch học ${newClass.name}`,
-        updatedAt: new Date().toISOString()
+        updatedAt: now,
+        teacherModifiedAt: now,
+        teacherModified: true
       };
       saveClassSchedule(schedConfig);
     }
@@ -396,7 +480,14 @@ export const updateClass = (
   customSlots?: WeeklyTimeSlot[]
 ): void => {
   const current = getClasses();
-  const updated = current.map(c => (c.id === id ? { ...c, ...updates } : c));
+  const now = new Date().toISOString();
+  const updated = current.map(c => (c.id === id ? {
+    ...c,
+    ...updates,
+    updatedAt: now,
+    teacherModifiedAt: now,
+    teacherModified: true
+  } : c));
   saveClasses(updated);
 
   if (customSlots && customSlots.length > 0) {
@@ -409,7 +500,9 @@ export const updateClass = (
       slots: customSlots,
       roomDefault: customSlots[0]?.room || 'Phòng A1',
       notes: `Lịch học ${targetClass?.name || ''}`,
-      updatedAt: new Date().toISOString()
+      updatedAt: now,
+      teacherModifiedAt: now,
+      teacherModified: true
     };
     saveClassSchedule(schedConfig);
   } else if (updates.description) {
@@ -424,7 +517,9 @@ export const updateClass = (
         slots: parsed.slots,
         roomDefault: 'Phòng A1',
         notes: `Lịch học ${targetClass?.name || ''}`,
-        updatedAt: new Date().toISOString()
+        updatedAt: now,
+        teacherModifiedAt: now,
+        teacherModified: true
       };
       saveClassSchedule(schedConfig);
     }
@@ -435,6 +530,13 @@ export const deleteClass = (id: string): void => {
   const current = getClasses();
   const updated = current.filter(c => c.id !== id);
   saveClasses(updated);
+
+  // Ghi nhận tombstone lớp đã xóa để đồng bộ Firebase không phục hồi lại lớp đã xóa
+  const deletedClasses = getDeletedClasses();
+  if (!deletedClasses.includes(id)) {
+    saveDeletedClasses([...deletedClasses, id]);
+  }
+
   // Also clean up students of this class
   const students = getStudents();
   const remainingStudents = students.filter(s => s.classId !== id);
@@ -979,6 +1081,25 @@ export const isAssignmentForClass = (
 };
 
 // ==================== ASSIGNMENT MANAGEMENT ====================
+export const getDeletedAssignments = (): string[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(DELETED_ASSIGNMENTS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+export const saveDeletedAssignments = (ids: string[]): void => {
+  if (typeof window === 'undefined') return;
+  const deduped = Array.from(new Set(ids));
+  localStorage.setItem(DELETED_ASSIGNMENTS_KEY, JSON.stringify(deduped));
+  syncToFirebaseIfConfigured('deleted_assignments', deduped);
+};
+
 export const getAssignments = (classId?: string): Assignment[] => {
   if (typeof window === 'undefined') return [];
   try {
@@ -987,8 +1108,10 @@ export const getAssignments = (classId?: string): Assignment[] => {
     const all: Assignment[] = JSON.parse(raw);
     if (!Array.isArray(all) || all.length === 0) return [];
 
-    // Filter out legacy default assignment if lingering
-    const cleanAll = all.filter(a => a && a.id && a.id !== 'assign_unit1_school');
+    const deletedIds = new Set(getDeletedAssignments());
+
+    // Filter out legacy default assignment or deleted assignments
+    const cleanAll = all.filter(a => a && a.id && a.id !== 'assign_unit1_school' && !deletedIds.has(a.id));
 
     // Auto-repair any assignments that may have had empty or incomplete exercises
     const sanitizedAll: Assignment[] = cleanAll.map(a => {
@@ -1044,9 +1167,13 @@ export const saveAssignment = (assignment: Assignment): void => {
     practice: ensureCompletePracticeContent(assignment.lessonPlan?.practice, assignment.lessonPlan || {})
   };
 
+  const now = new Date().toISOString();
   const safeAssignment: Assignment = {
     ...assignment,
-    lessonPlan: safeLessonPlan
+    lessonPlan: safeLessonPlan,
+    updatedAt: now,
+    teacherModifiedAt: now,
+    teacherModified: true
   };
 
   const all = getAssignments();
@@ -1062,6 +1189,13 @@ export const deleteAssignment = (id: string): void => {
   const all = getAssignments();
   const updated = all.filter(a => a.id !== id);
   localStorage.setItem(ASSIGNMENTS_KEY, JSON.stringify(updated));
+
+  // Ghi nhận tombstone bài tập đã xóa để đồng bộ Firebase không phục hồi lại bài đã xóa
+  const deleted = getDeletedAssignments();
+  if (!deleted.includes(id)) {
+    saveDeletedAssignments([...deleted, id]);
+  }
+
   notifySync('assignment_deleted', { id });
   syncToFirebaseIfConfigured('assignments', updated);
 };
@@ -1074,7 +1208,14 @@ export const updateAssignmentTitle = (id: string, newTitle: string): void => {
   const all = getAssignments();
   const assign = all.find(a => a.id === id);
   if (!assign) return;
-  const updatedAssign = { ...assign, title: trimmedTitle };
+  const now = new Date().toISOString();
+  const updatedAssign: Assignment = {
+    ...assign,
+    title: trimmedTitle,
+    updatedAt: now,
+    teacherModifiedAt: now,
+    teacherModified: true
+  };
   const updatedList = all.map(a => a.id === id ? updatedAssign : a);
   localStorage.setItem(ASSIGNMENTS_KEY, JSON.stringify(updatedList));
   notifySync('assignment_updated', updatedAssign);
@@ -1367,7 +1508,7 @@ export interface AdminNotificationItem {
   createdAt: number;
 }
 
-const ADMIN_NOTIFICATIONS_KEY = 'mrs_dung_admin_notifications';
+const ADMIN_NOTIFICATIONS_KEY = 'nextgen_admin_notifications';
 
 export const getAdminNotifications = (): AdminNotificationItem[] => {
   if (typeof window === 'undefined') return [];

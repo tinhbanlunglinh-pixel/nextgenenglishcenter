@@ -9,8 +9,6 @@ import { TeacherDashboard } from './components/teacher/TeacherDashboard';
 import { StudentDashboard } from './components/student/StudentDashboard';
 import { SettingsModal } from './components/SettingsModal';
 import { LearningHistory } from './components/LearningHistory';
-import { VisitCounter } from './components/VisitCounter';
-import { AdminNotificationBell } from './components/teacher/AdminNotificationBell';
 
 interface LogoProps {
   className?: string;
@@ -34,15 +32,13 @@ export const NextgenLogo = ({ className = "w-16 h-16", alt = "NEXTGEN ENGLISH" }
   </div>
 );
 
-export const MrsDungLogo = NextgenLogo;
-
 function App() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => getCurrentUser());
   const [currentRole, setCurrentRole] = useState<UserRole>(() => {
     const user = getCurrentUser();
     if (user) return user.role;
     if (typeof window !== 'undefined') {
-      const saved = (localStorage.getItem('nextgen_user_role') || localStorage.getItem('mrs_dung_user_role')) as UserRole;
+      const saved = localStorage.getItem('nextgen_user_role') as UserRole;
       if (saved === 'teacher' || saved === 'student') return saved;
     }
     return 'teacher'; // default role
@@ -72,7 +68,6 @@ function App() {
   const handleRoleChange = (role: UserRole) => {
     setCurrentRole(role);
     localStorage.setItem('nextgen_user_role', role);
-    localStorage.setItem('mrs_dung_user_role', role);
   };
 
   const handleLoginSuccess = (user: AuthUser) => {
@@ -82,13 +77,9 @@ function App() {
       if (user.username !== 'hocsinh' && user.name !== 'Học Sinh') {
         localStorage.setItem('nextgen_selected_student', user.name);
         localStorage.setItem('nextgen_active_student_name', user.name);
-        localStorage.setItem('mrs_dung_selected_student', user.name);
-        localStorage.setItem('mrs_dung_active_student_name', user.name);
         if (user.className) {
           localStorage.setItem('nextgen_selected_class', user.className);
           localStorage.setItem('nextgen_active_class_name', user.className);
-          localStorage.setItem('mrs_dung_selected_class', user.className);
-          localStorage.setItem('mrs_dung_active_class_name', user.className);
         }
       }
     }
@@ -165,11 +156,6 @@ function App() {
 
           {/* Right Action Icons */}
           <div className="flex items-center gap-2">
-            {/* Compact Visit Counter */}
-            <div className="hidden lg:block">
-              <VisitCounter compact={true} />
-            </div>
-
             {/* Firebase Connected / Cloud Sync Button */}
             {isFirebaseConfigured() && (
               <button
@@ -189,11 +175,6 @@ function App() {
                 <span className="hidden md:inline">{isHeaderSyncing ? 'Đang đồng bộ...' : '🔥 Cloud Sync'}</span>
                 <span className="md:hidden">{isHeaderSyncing ? '...' : '🔥 Sync'}</span>
               </button>
-            )}
-
-            {/* Admin Notification Bell (For teacher) */}
-            {currentUser.role === 'teacher' && (
-              <AdminNotificationBell />
             )}
 
             {/* History Button */}
@@ -338,9 +319,6 @@ function App() {
                 <p className="text-[#2dd4bf] font-black text-xs sm:text-sm tracking-wider uppercase">
                   HỌC TIẾNG ANH . DẪN LỐI TƯƠNG LAI.
                 </p>
-              </div>
-              <div className="w-full mt-4">
-                <VisitCounter compact={true} />
               </div>
             </div>
           </div>

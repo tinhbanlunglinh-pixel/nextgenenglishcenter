@@ -80,7 +80,7 @@ export const StudentLessonView: React.FC<StudentLessonViewProps> = ({
   );
 
   const isTeacher = typeof window !== 'undefined' && (
-    localStorage.getItem('mrs_dung_user_role') === 'teacher' ||
+    localStorage.getItem('nextgen_user_role') === 'teacher' ||
     getCurrentUser()?.role === 'teacher'
   );
 

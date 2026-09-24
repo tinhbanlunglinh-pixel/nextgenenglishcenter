@@ -3,6 +3,7 @@ import { UserRole, AuthUser, ClassRoom, Student } from '../types';
 import {
   login,
   loginStudentSimple,
+  loginStudentWithPassword,
   getSavedTeacherLogin,
   setSavedTeacherLogin,
   clearSavedTeacherLogin,
@@ -11,7 +12,8 @@ import {
 } from '../services/authService';
 import { getClasses, getStudents, subscribeToSync } from '../services/assignmentService';
 import { StudentLeaderboardHonor } from './student/StudentLeaderboardHonor';
-import { VisitCounter } from './VisitCounter';
+import { StudentChangePasswordModal } from './student/StudentChangePasswordModal';
+import { StudentRegisterModal } from './student/StudentRegisterModal';
 
 interface LoginScreenProps {
   onLoginSuccess: (user: AuthUser) => void;
@@ -26,6 +28,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [rememberMe, setRememberMe] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Student password & registration states
+  const [studentPassword, setStudentPassword] = useState('123');
+  const [showStudentPassword, setShowStudentPassword] = useState(false);
+  const [showStudentChangePassModal, setShowStudentChangePassModal] = useState(false);
+  const [showStudentRegisterModal, setShowStudentRegisterModal] = useState(false);
 
   // Modal to customize teacher credentials from login screen
   const [showCustomModal, setShowCustomModal] = useState(false);
@@ -148,8 +156,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     setTimeout(() => {
       let result;
       if (selectedRole === 'student') {
-        // Simple Student login: ONLY requires Class and Name (NO PASSWORD NEEDED)
-        result = loginStudentSimple(studentName, studentClassName);
+        // Student login: checks password (default: 123)
+        result = loginStudentWithPassword(studentName, studentClassName, studentPassword);
       } else {
         // Teacher login: supports customized credentials
         result = login(username, password, 'teacher');
@@ -368,7 +376,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       required
                       value={studentName}
                       onChange={e => setStudentName(e.target.value)}
-                      placeholder={classStudents.length > 0 ? "Hoặc tự gõ họ tên con vào đây..." : "Ví dụ: Nguyễn Minh Anh"}
+                      placeholder={classStudents.length > 0 ? "Hoặc tự gõ họ tên con vào đây..." : "Ví dụ: Nguyễn Văn A"}
                       className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none text-sm font-bold text-slate-900 placeholder:font-normal placeholder:text-slate-400"
                       autoComplete="off"
                       autoFocus
@@ -405,12 +413,59 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                   )}
                 </div>
 
-                {/* Friendly Notice */}
-                <div className="p-3 bg-emerald-50/90 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2.5 leading-relaxed">
-                  <span className="text-xl shrink-0">✨</span>
-                  <div>
-                    Không cần mật khẩu! Con chỉ cần chọn đúng <b>Lớp</b> và <b>Tên</b> là vào làm bài ngay nhé.
+                {/* 3. Mật Khẩu Học Sinh */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-slate-700">
+                      3. Mật Khẩu Đăng Nhập
+                    </label>
+                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">
+                      Mặc định: 123
+                    </span>
                   </div>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 text-sm pointer-events-none">
+                      🔒
+                    </span>
+                    <input
+                      type={showStudentPassword ? 'text' : 'password'}
+                      required
+                      value={studentPassword}
+                      onChange={e => setStudentPassword(e.target.value)}
+                      placeholder="Mật khẩu (mặc định: 123)..."
+                      className="w-full pl-10 pr-11 py-3 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none text-sm font-bold text-slate-900 font-mono"
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowStudentPassword(!showStudentPassword)}
+                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 text-sm"
+                      tabIndex={-1}
+                    >
+                      {showStudentPassword ? '🙈' : '👁️'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quick actions for student: Change password & Register */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowStudentChangePassModal(true)}
+                    className="text-xs font-bold text-emerald-700 hover:text-emerald-900 underline flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <span>🔑</span>
+                    <span>Đổi mật khẩu học sinh</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowStudentRegisterModal(true)}
+                    className="text-xs font-bold text-brand-600 hover:text-brand-800 underline flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <span>✨</span>
+                    <span>Tạo tài khoản học sinh mới</span>
+                  </button>
                 </div>
               </div>
             ) : (
@@ -498,7 +553,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 {rememberMe && username && (
                   <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] font-semibold text-emerald-800 flex items-center gap-1.5 animate-fade-in">
                     <span>💾</span>
-                    <span>Tài khoản đã được lưu trên thiết bị. Lần sau cô không cần nhập lại!</span>
+                    <span>Tài khoản đã được lưu trên thiết bị. Lần sau thầy/cô không cần nhập lại!</span>
                   </div>
                 )}
               </div>
@@ -550,11 +605,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           title="BẢNG DANH SÁCH THÀNH TÍCH HỌC SINH CHĂM CHỈ ĐANG DẪN ĐẦU ĐIỂM CAO NHẤT"
           subtitle="Tuyên dương các con nỗ lực làm bài tập về nhà chăm chỉ và đạt điểm số cao nhất lớp Nextgen English!"
         />
-
-        {/* Real-time Learning Visit Statistics */}
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 shadow-lg">
-          <VisitCounter compact={false} />
-        </div>
       </div>
     </div>
 
@@ -669,6 +719,27 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         </div>
       </div>
     )}
+
+    {/* Modal: Đổi Mật Khẩu Học Sinh */}
+    <StudentChangePasswordModal
+      isOpen={showStudentChangePassModal}
+      onClose={() => setShowStudentChangePassModal(false)}
+      initialClassName={studentClassName}
+      initialStudentName={studentName}
+      onSuccess={(newPass) => {
+        setStudentPassword(newPass);
+      }}
+    />
+
+    {/* Modal: Tạo Tài Khoản Học Sinh Mới */}
+    <StudentRegisterModal
+      isOpen={showStudentRegisterModal}
+      onClose={() => setShowStudentRegisterModal(false)}
+      initialClassName={studentClassName}
+      onRegisterSuccess={(authUser) => {
+        onLoginSuccess(authUser);
+      }}
+    />
   </div>
   );
 };

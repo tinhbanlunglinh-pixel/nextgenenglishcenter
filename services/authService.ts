@@ -1,10 +1,10 @@
-import { AuthUser, UserRole } from '../types';
+import { AuthUser, UserRole, Student } from '../types';
 import { INITIAL_ACCOUNTS, AccountCredential } from '../accounts/credentials';
 
-const CURRENT_USER_KEY = 'mrs_dung_auth_current_user';
-const CUSTOM_ACCOUNTS_KEY = 'mrs_dung_custom_accounts';
-export const TEACHER_CREDENTIALS_KEY = 'mrs_dung_teacher_custom_credentials';
-export const SAVED_TEACHER_LOGIN_KEY = 'mrs_dung_saved_teacher_login';
+const CURRENT_USER_KEY = 'nextgen_auth_current_user';
+const CUSTOM_ACCOUNTS_KEY = 'nextgen_custom_accounts';
+export const TEACHER_CREDENTIALS_KEY = 'nextgen_teacher_custom_credentials';
+export const SAVED_TEACHER_LOGIN_KEY = 'nextgen_saved_teacher_login';
 
 export interface TeacherCredentials {
   username: string; // default: 'Nextgen'
@@ -155,7 +155,7 @@ export const saveAccounts = (accounts: AccountCredential[]): void => {
   localStorage.setItem(CUSTOM_ACCOUNTS_KEY, JSON.stringify(accounts));
 };
 
-import { getStudents, getClasses, updateStudent } from './assignmentService';
+import { getStudents, getClasses, updateStudent, addStudent, addClass } from './assignmentService';
 
 /**
  * Login verification (supports both teacher/admin accounts and student lookup)
@@ -176,7 +176,7 @@ export const login = (
     return { success: false, error: 'Vui lòng nhập mật khẩu!' };
   }
 
-  // Dedicated check for Teacher Mrs. Dung (supports customized credentials + master fallback)
+  // Dedicated check for Teacher Nextgen (supports customized credentials + master fallback)
   const teacherCreds = getTeacherCredentials();
   const normalizedUser = cleanUser.replace(/[\.\s_-]/g, '');
   const normalizedTeacherUser = teacherCreds.username.toLowerCase().replace(/[\.\s_-]/g, '');
@@ -187,11 +187,7 @@ export const login = (
     cleanUser === 'nextgen' ||
     cleanUser === 'nextgent' ||
     normalizedUser === 'nextgen' ||
-    normalizedUser === 'nextgent' ||
-    cleanUser === 'mrs. dung' ||
-    cleanUser === 'mrs dung' ||
-    cleanUser === 'mrsdung' ||
-    normalizedUser === 'mrsdung';
+    normalizedUser === 'nextgent';
 
   if (isMatchTeacherUsername || expectedRole === 'teacher') {
     // Check if password matches custom password OR default 88889999
@@ -363,10 +359,10 @@ export const setCurrentUser = (user: AuthUser | null): void => {
   if (typeof window === 'undefined') return;
   if (user) {
     localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
-    // Also sync mrs_dung_user_role for compatibility
-    localStorage.setItem('mrs_dung_user_role', user.role);
+    localStorage.setItem('nextgen_user_role', user.role);
   } else {
     localStorage.removeItem(CURRENT_USER_KEY);
+    localStorage.removeItem('nextgen_user_role');
   }
 };
 
@@ -399,28 +395,177 @@ export const normalizePhoneNumber = (phone: string): string => {
 };
 
 /**
- * Login student with Class Name and Student Name (No password required)
+ * Create a new student account (Name, Class, default password '123')
  */
-export const loginStudentWithClassAndPass = (
-  classNameInput: string,
-  studentNameInput: string,
-  _passwordInput?: string
-): { success: boolean; user?: AuthUser; error?: string } => {
-  return loginStudentSimple(studentNameInput, classNameInput);
+export const createStudentAccount = (params: {
+  name: string;
+  className: string;
+  classId?: string;
+  englishName?: string;
+  phone?: string;
+  password?: string;
+}): { success: boolean; student?: Student; user?: AuthUser; error?: string } => {
+  const cleanName = (params.name || '').trim();
+  const cleanClassName = (params.className || '').trim();
+  const cleanPass = (params.password || '123').trim() || '123';
+  const cleanEnglish = (params.englishName || '').trim();
+  const cleanPhone = (params.phone || '').trim();
+
+  if (!cleanClassName) {
+    return { success: false, error: 'Con ơi, vui lòng chọn hoặc nhập tên lớp học nhé!' };
+  }
+  if (!cleanName) {
+    return { success: false, error: 'Con ơi, vui lòng nhập họ và tên của mình nhé!' };
+  }
+
+  const norm = (s?: string) => (s || '').toLowerCase().replace(/^(lớp|lop)\s*/i, '').trim();
+  const cleanNFC = (s?: string) => (s || '').trim().toLowerCase().normalize('NFC');
+
+  const classes = getClasses();
+  let matchedClass = classes.find(c => 
+    (params.classId && c.id === params.classId) || 
+    c.name === cleanClassName || 
+    norm(c.name) === norm(cleanClassName) ||
+    cleanNFC(c.name) === cleanNFC(cleanClassName)
+  );
+
+  let targetClassId = matchedClass ? matchedClass.id : '';
+  let targetClassName = matchedClass ? matchedClass.name : cleanClassName;
+
+  if (!matchedClass) {
+    // Tự động tạo lớp mới nếu chưa có
+    const created = addClass(cleanClassName, 6, `Lớp ${cleanClassName}`);
+    targetClassId = created.id;
+    targetClassName = created.name;
+  }
+
+  // Kiểm tra xem đã có bạn học sinh này trong lớp chưa
+  const students = getStudents(targetClassId);
+  const targetNameNFC = cleanNFC(cleanName);
+  const existingStudent = students.find(s =>
+    cleanNFC(s.name) === targetNameNFC ||
+    (s.englishName && cleanNFC(s.englishName) === targetNameNFC)
+  );
+
+  if (existingStudent) {
+    return {
+      success: false,
+      error: `Học sinh "${cleanName}" đã có trong lớp "${targetClassName}" rồi! Con có thể dùng mật khẩu (mặc định là 123) để đăng nhập ngay nhé.`
+    };
+  }
+
+  const newStudent = addStudent(
+    cleanName,
+    targetClassId,
+    targetClassName,
+    cleanEnglish,
+    cleanPhone,
+    'Tài khoản tự đăng ký',
+    cleanPass
+  );
+
+  const authUser: AuthUser = {
+    id: newStudent.id,
+    username: newStudent.username || newStudent.name,
+    role: 'student',
+    name: newStudent.name,
+    avatar: newStudent.avatar || '🎒',
+    classId: newStudent.classId,
+    className: newStudent.className,
+    phone: newStudent.phone
+  };
+
+  setCurrentUser(authUser);
+  return { success: true, student: newStudent, user: authUser };
 };
 
 /**
- * Verify student's registered phone number and update/reset password
+ * Login student with Class Name, Student Name, and Password (Default: 123)
  */
-export const verifyStudentPhoneAndResetPassword = (
+export const loginStudentWithPassword = (
+  studentNameInput: string,
+  classIdOrName: string,
+  passwordInput: string = '123'
+): { success: boolean; user?: AuthUser; error?: string } => {
+  const cleanName = (studentNameInput || '').trim();
+  const cleanClass = (classIdOrName || '').trim();
+  const cleanPass = (passwordInput || '').trim();
+
+  if (!cleanClass) {
+    return { success: false, error: 'Con ơi, vui lòng chọn lớp học của mình nhé!' };
+  }
+  if (!cleanName) {
+    return { success: false, error: 'Con ơi, vui lòng chọn hoặc nhập họ và tên của mình nhé!' };
+  }
+  if (!cleanPass) {
+    return { success: false, error: 'Con ơi, vui lòng nhập mật khẩu (mặc định ban đầu là 123)!' };
+  }
+
+  const norm = (s?: string) => (s || '').toLowerCase().replace(/^(lớp|lop)\s*/i, '').trim();
+  const cleanNFC = (s?: string) => (s || '').trim().toLowerCase().normalize('NFC');
+
+  const classes = getClasses();
+  const matchedClass = classes.find(c => 
+    c.id === cleanClass || 
+    norm(c.name) === norm(cleanClass) ||
+    cleanNFC(c.name) === cleanNFC(cleanClass)
+  );
+
+  const targetClassId = matchedClass ? matchedClass.id : cleanClass;
+  const targetClassName = matchedClass ? matchedClass.name : cleanClass;
+
+  const students = getStudents(targetClassId);
+  const targetNameNFC = cleanNFC(cleanName);
+
+  const matchedStudent = students.find(s =>
+    cleanNFC(s.name) === targetNameNFC ||
+    (s.englishName && cleanNFC(s.englishName) === targetNameNFC) ||
+    (s.id && s.id.toLowerCase() === targetNameNFC) ||
+    (s.username && cleanNFC(s.username) === targetNameNFC)
+  );
+
+  if (!matchedStudent) {
+    return {
+      success: false,
+      error: `Không tìm thấy bạn "${cleanName}" trong lớp "${targetClassName}". Con kiểm tra lại họ tên hoặc bấm "Tạo tài khoản học sinh mới" nhé!`
+    };
+  }
+
+  const expectedPassword = (matchedStudent.password || '123').trim();
+  if (cleanPass !== expectedPassword) {
+    return {
+      success: false,
+      error: `Mật khẩu không chính xác! (Mật khẩu mặc định là 123 hoặc con bấm "Đổi mật khẩu" bên dưới nếu đã từng đổi)`
+    };
+  }
+
+  const authUser: AuthUser = {
+    id: matchedStudent.id,
+    username: matchedStudent.username || matchedStudent.name,
+    role: 'student',
+    name: matchedStudent.name,
+    avatar: matchedStudent.avatar || '🎒',
+    classId: targetClassId,
+    className: targetClassName,
+    phone: matchedStudent.phone
+  };
+
+  setCurrentUser(authUser);
+  return { success: true, user: authUser };
+};
+
+/**
+ * Change student password requiring ONLY old password and new password
+ */
+export const changeStudentPasswordWithOldPassword = (
   classNameInput: string,
   studentNameInput: string,
-  phoneInput: string,
+  oldPasswordInput: string,
   newPasswordInput: string
 ): { success: boolean; message?: string; error?: string } => {
   const cleanClass = (classNameInput || '').trim();
   const cleanName = (studentNameInput || '').trim();
-  const cleanPhone = normalizePhoneNumber(phoneInput);
+  const cleanOldPass = (oldPasswordInput || '').trim();
   const cleanNewPass = (newPasswordInput || '').trim();
 
   if (!cleanClass) {
@@ -429,11 +574,8 @@ export const verifyStudentPhoneAndResetPassword = (
   if (!cleanName) {
     return { success: false, error: 'Vui lòng nhập hoặc chọn họ và tên của con!' };
   }
-  if (!cleanPhone) {
-    return { success: false, error: 'Vui lòng nhập số điện thoại phụ huynh để xác minh!' };
-  }
-  if (cleanPhone.length < 9 || cleanPhone.length > 11) {
-    return { success: false, error: 'Số điện thoại không đúng định dạng (cần 10 số, ví dụ: 0912345678)!' };
+  if (!cleanOldPass) {
+    return { success: false, error: 'Vui lòng nhập mật khẩu hiện tại (mật khẩu cũ)!' };
   }
   if (!cleanNewPass) {
     return { success: false, error: 'Vui lòng nhập mật khẩu mới!' };
@@ -461,31 +603,82 @@ export const verifyStudentPhoneAndResetPassword = (
   if (!matchedStudent) {
     return {
       success: false,
-      error: `Không tìm thấy học sinh "${cleanName}" trong lớp "${matchedClass?.name || cleanClass}"! Vui lòng kiểm tra lại họ tên.`
+      error: `Không tìm thấy học sinh "${cleanName}" trong lớp "${matchedClass?.name || cleanClass}"! Vui lòng kiểm tra lại.`
     };
   }
 
-  const studentCurrentPhone = normalizePhoneNumber(matchedStudent.phone || '');
-
-  // Case 1: Student already has a phone number registered with teacher
-  if (studentCurrentPhone) {
-    if (cleanPhone !== studentCurrentPhone) {
-      return {
-        success: false,
-        error: `Số điện thoại "${phoneInput}" không khớp với số điện thoại phụ huynh đã đăng ký cho bạn ${matchedStudent.name}! Vui lòng kiểm tra lại hoặc liên hệ Trung tâm Nextgen để kiểm tra SĐT trên hệ thống.`
-      };
-    }
+  const currentPass = (matchedStudent.password || '123').trim();
+  if (cleanOldPass !== currentPass) {
+    return {
+      success: false,
+      error: 'Mật khẩu hiện tại (cũ) không chính xác! (Mật khẩu ban đầu mặc định là 123 nếu con chưa từng đổi).'
+    };
   }
 
-  // Case 2: Match confirmed (or student has no phone on record yet, so we bind this official phone)
   updateStudent(matchedStudent.id, {
-    password: cleanNewPass,
-    phone: cleanPhone
+    password: cleanNewPass
+  });
+
+  // If current logged in session is this student, keep in sync
+  const currentUser = getCurrentUser();
+  if (currentUser && currentUser.id === matchedStudent.id) {
+    setCurrentUser({
+      ...currentUser,
+      name: matchedStudent.name
+    });
+  }
+
+  return {
+    success: true,
+    message: `🎉 Chúc mừng ${matchedStudent.name}! Đổi mật khẩu thành công. Mật khẩu mới của con là "${cleanNewPass}".`
+  };
+};
+
+/**
+ * Teacher grants / changes / resets password for any student
+ */
+export const teacherResetStudentPassword = (
+  studentId: string,
+  newPassword: string = '123'
+): { success: boolean; message?: string; error?: string } => {
+  const cleanPass = (newPassword || '123').trim() || '123';
+  const students = getStudents();
+  const target = students.find(s => s.id === studentId);
+  if (!target) {
+    return { success: false, error: 'Không tìm thấy học sinh trong hệ thống!' };
+  }
+
+  updateStudent(studentId, {
+    password: cleanPass
   });
 
   return {
     success: true,
-    message: `🎉 Chúc mừng ${matchedStudent.name}! Mật khẩu mới đã được cập nhật thành công. Con có thể dùng mật khẩu mới này để đăng nhập ngay bây giờ!`
+    message: `✓ Đã cập nhật mật khẩu cho học sinh "${target.name}" thành "${cleanPass}".`
   };
+};
+
+/**
+ * Backward compatibility aliases
+ */
+export const loginStudentWithClassAndPass = (
+  classNameInput: string,
+  studentNameInput: string,
+  passwordInput?: string
+): { success: boolean; user?: AuthUser; error?: string } => {
+  if (passwordInput !== undefined && passwordInput.trim() !== '') {
+    return loginStudentWithPassword(studentNameInput, classNameInput, passwordInput);
+  }
+  return loginStudentSimple(studentNameInput, classNameInput);
+};
+
+export const verifyStudentPhoneAndResetPassword = (
+  classNameInput: string,
+  studentNameInput: string,
+  _phoneInput: string,
+  newPasswordInput: string
+): { success: boolean; message?: string; error?: string } => {
+  // Gracefully supports phone-less password reset
+  return changeStudentPasswordWithOldPassword(classNameInput, studentNameInput, '123', newPasswordInput);
 };
 

@@ -188,7 +188,7 @@ export const MonthlyReportAggregator: React.FC<MonthlyReportAggregatorProps> = (
   // Zoom & Font Size Control (Normal / Large / Extra Large) - default to 'large'
   const [tableZoom, setTableZoom] = useState<'normal' | 'large' | 'xl'>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('mrs_dung_report_zoom');
+      const saved = localStorage.getItem('nextgen_report_zoom');
       if (saved === 'normal' || saved === 'large' || saved === 'xl') return saved;
     }
     return 'large'; // Default to large as requested by user ("chữ và số hơi nhỏ")
@@ -197,7 +197,7 @@ export const MonthlyReportAggregator: React.FC<MonthlyReportAggregatorProps> = (
   const handleTableZoomChange = (zoom: 'normal' | 'large' | 'xl') => {
     setTableZoom(zoom);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('mrs_dung_report_zoom', zoom);
+      localStorage.setItem('nextgen_report_zoom', zoom);
     }
   };
 
