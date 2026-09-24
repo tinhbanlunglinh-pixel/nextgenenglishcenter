@@ -77,8 +77,10 @@ export const StudentExamView: React.FC<StudentExamViewProps> = ({
   // Calculate answered count
   const allQuestions: ExamQuestion[] = useMemo(() => {
     const list: ExamQuestion[] = [];
-    exam.sections.forEach(sec => {
-      sec.questions.forEach(q => list.push(q));
+    (exam?.sections || []).forEach(sec => {
+      (sec?.questions || []).forEach(q => {
+        if (q) list.push(q);
+      });
     });
     return list;
   }, [exam]);
@@ -348,7 +350,7 @@ export const StudentExamView: React.FC<StudentExamViewProps> = ({
 
       {/* EXAM SECTIONS & QUESTIONS */}
       <div className="space-y-8">
-        {exam.sections.map((section, secIdx) => (
+        {(exam?.sections || []).map((section, secIdx) => (
           <div
             key={secIdx}
             className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-brand-100 space-y-6"
@@ -384,7 +386,7 @@ export const StudentExamView: React.FC<StudentExamViewProps> = ({
 
             {/* Questions List */}
             <div className="space-y-6">
-              {section.questions.map((q, qIdx) => {
+              {(section?.questions || []).map((q, qIdx) => {
                 const qResult = getQuestionResult(q.id);
                 const currentAnswer = studentAnswers[q.id] || '';
 
@@ -448,9 +450,11 @@ export const StudentExamView: React.FC<StudentExamViewProps> = ({
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                           {q.options.map((opt, oIdx) => {
                             const optLetter = ['A', 'B', 'C', 'D'][oIdx] || String(oIdx + 1);
+                            const currentAnsStr = String(currentAnswer || '').trim();
+                            const correctAnsStr = String(q?.correctAnswer || '').trim();
                             const isSelected =
-                              currentAnswer.trim().toUpperCase().startsWith(optLetter) ||
-                              currentAnswer.trim() === opt.trim();
+                              currentAnsStr.toUpperCase().startsWith(optLetter) ||
+                              currentAnsStr === String(opt || '').trim();
 
                             let btnStyle = 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100';
                             if (isSelected) {
@@ -459,8 +463,8 @@ export const StudentExamView: React.FC<StudentExamViewProps> = ({
                             if (isSubmitted) {
                               // If this option is the correct one
                               const isThisCorrect =
-                                q.correctAnswer.trim().toUpperCase().startsWith(optLetter) ||
-                                q.correctAnswer.trim() === opt.trim();
+                                correctAnsStr.toUpperCase().startsWith(optLetter) ||
+                                correctAnsStr === String(opt || '').trim();
                               if (isThisCorrect) {
                                 btnStyle = 'bg-emerald-500 border-emerald-600 text-white font-black shadow-md';
                               } else if (isSelected && !qResult?.isCorrect) {
@@ -491,13 +495,13 @@ export const StudentExamView: React.FC<StudentExamViewProps> = ({
                       {q.type === 'true_false' && (
                         <div className="flex gap-3">
                           {['True', 'False'].map(val => {
-                            const isSelected = currentAnswer.toLowerCase() === val.toLowerCase();
+                            const isSelected = String(currentAnswer || '').toLowerCase() === val.toLowerCase();
                             let btnStyle = 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100';
                             if (isSelected) {
                               btnStyle = 'bg-brand-500 border-brand-600 text-white font-black shadow';
                             }
                             if (isSubmitted) {
-                              const isThisCorrect = q.correctAnswer.toLowerCase() === val.toLowerCase();
+                              const isThisCorrect = String(q?.correctAnswer || '').toLowerCase() === val.toLowerCase();
                               if (isThisCorrect) {
                                 btnStyle = 'bg-emerald-500 border-emerald-600 text-white font-black';
                               } else if (isSelected && !qResult?.isCorrect) {

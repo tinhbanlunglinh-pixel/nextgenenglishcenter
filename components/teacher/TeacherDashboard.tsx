@@ -9,6 +9,7 @@ import { ScheduleAndAttendance } from './ScheduleAndAttendance';
 import { TopPerformersHonor } from './TopPerformersHonor';
 import { getClasses, getStudents, getAssignments, getSubmissions, subscribeToSync, forceCloudSyncNow } from '../../services/assignmentService';
 import { Assignment } from '../../types';
+import { ErrorBoundary } from '../ErrorBoundary';
 
 interface TeacherDashboardProps {
   onOpenSettings: () => void;
@@ -211,53 +212,60 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onOpenSettin
         </button>
       </div>
 
-      {/* Tab Contents */}
-      {activeTab === 'create' && (
-        <AssignmentCreator
-          onOpenSettings={onOpenSettings}
-          onAssignmentCreated={() => setActiveTab('repository')}
-          onNavigateToRepository={() => setActiveTab('repository')}
-          initialAssignment={editingAssignment}
-          onClearInitialAssignment={() => setEditingAssignment(null)}
-        />
-      )}
+      {/* Tab Contents with Localized Inline Error Boundary */}
+      <ErrorBoundary
+        key={activeTab}
+        isInline
+        fallbackTitle="Sự Cố Hiển Thị Trong Tab Này"
+        fallbackMessage="Hệ thống gặp sự cố tạm thời khi vẽ giao diện mục này. Dữ liệu học sinh và bài tập vẫn an toàn, thầy cô có thể chuyển sang các tab khác bình thường."
+      >
+        {activeTab === 'create' && (
+          <AssignmentCreator
+            onOpenSettings={onOpenSettings}
+            onAssignmentCreated={() => setActiveTab('repository')}
+            onNavigateToRepository={() => setActiveTab('repository')}
+            initialAssignment={editingAssignment}
+            onClearInitialAssignment={() => setEditingAssignment(null)}
+          />
+        )}
 
-      {activeTab === 'repository' && (
-        <LessonRepository
-          onEditAssignment={(assign) => {
-            setEditingAssignment(assign);
-            setActiveTab('create');
-          }}
-          onNavigateToCreate={() => {
-            setEditingAssignment(null);
-            setActiveTab('create');
-          }}
-        />
-      )}
+        {activeTab === 'repository' && (
+          <LessonRepository
+            onEditAssignment={(assign) => {
+              setEditingAssignment(assign);
+              setActiveTab('create');
+            }}
+            onNavigateToCreate={() => {
+              setEditingAssignment(null);
+              setActiveTab('create');
+            }}
+          />
+        )}
 
-      {activeTab === 'students' && (
-        <StudentManagement />
-      )}
+        {activeTab === 'students' && (
+          <StudentManagement />
+        )}
 
-      {activeTab === 'schedule' && (
-        <ScheduleAndAttendance />
-      )}
+        {activeTab === 'schedule' && (
+          <ScheduleAndAttendance />
+        )}
 
-      {activeTab === 'summary' && (
-        <DailyResultsAggregator />
-      )}
+        {activeTab === 'summary' && (
+          <DailyResultsAggregator />
+        )}
 
-      {activeTab === 'monthly' && (
-        <MonthlyReportAggregator onOpenAnnualReport={() => setActiveTab('annual')} />
-      )}
+        {activeTab === 'monthly' && (
+          <MonthlyReportAggregator onOpenAnnualReport={() => setActiveTab('annual')} />
+        )}
 
-      {activeTab === 'annual' && (
-        <AnnualReportAggregator onBackToMonthly={() => setActiveTab('monthly')} />
-      )}
+        {activeTab === 'annual' && (
+          <AnnualReportAggregator onBackToMonthly={() => setActiveTab('monthly')} />
+        )}
 
-      {activeTab === 'top' && (
-        <TopPerformersHonor submissions={allSubmissions} />
-      )}
+        {activeTab === 'top' && (
+          <TopPerformersHonor submissions={allSubmissions} />
+        )}
+      </ErrorBoundary>
     </div>
   );
 };

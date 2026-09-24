@@ -1119,8 +1119,9 @@ export const MonthlyReportAggregator: React.FC<MonthlyReportAggregatorProps> = (
     headerRow1.push('ĐIỂM TB');
 
     // Build rows
+    const classNameForExport = currentClass ? currentClass.name : 'Lop';
     const dataRows = studentScores.map(std => {
-      const row: any[] = [currentClass.name, std.studentName, std.englishName || ''];
+      const row: any[] = [classNameForExport, std.studentName, std.englishName || ''];
       sessions.forEach(s => {
         s.columns.forEach(col => {
           const val = std.scores?.[s.id]?.[col.key];
@@ -1134,7 +1135,7 @@ export const MonthlyReportAggregator: React.FC<MonthlyReportAggregatorProps> = (
     const ws = XLSX.utils.aoa_to_sheet([headerRow1, ...dataRows]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, `Báo cáo Tháng ${selectedMonth}`);
-    XLSX.writeFile(wb, `Bao_cao_thang_${selectedMonth}_${currentClass.name}.xlsx`);
+    XLSX.writeFile(wb, `Bao_cao_thang_${selectedMonth}_${classNameForExport.replace(/\s+/g, '_')}.xlsx`);
   };
 
   // Sort students for Ranking

@@ -104,9 +104,11 @@ ${link}
         const matchTitle = item.title?.toLowerCase().includes(q);
         const matchTopic = item.topic?.toLowerCase().includes(q);
         const matchGrammar = item.lessonPlan?.grammar?.topic?.toLowerCase().includes(q);
-        const matchVocab = item.lessonPlan?.vocabulary?.some(v =>
-          v.word.toLowerCase().includes(q) || v.meaning.toLowerCase().includes(q)
-        );
+        const matchVocab = item.lessonPlan?.vocabulary?.some(v => {
+          const w = (v?.word || (v as any)?.term || '').toLowerCase();
+          const m = (v?.meaning || (v as any)?.vietnamese || '').toLowerCase();
+          return w.includes(q) || m.includes(q);
+        });
         if (!matchTitle && !matchTopic && !matchGrammar && !matchVocab) {
           return false;
         }

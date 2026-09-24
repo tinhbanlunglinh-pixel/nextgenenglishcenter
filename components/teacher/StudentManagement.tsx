@@ -453,12 +453,12 @@ export const StudentManagement: React.FC = () => {
   const classAssignments = assignments.filter(a => {
     if (!currentClass) return false;
     if (a.targetClassId === 'ALL' || a.targetClassName === 'Tất cả các lớp') return true;
-    if (a.targetClassId === currentClass.id) return true;
-    if (a.targetClassName === currentClass.name) return true;
-    if (Array.isArray(a.targetClassIds) && (a.targetClassIds.includes(currentClass.id) || a.targetClassIds.includes('ALL'))) return true;
-    if (Array.isArray(a.targetClassNames) && a.targetClassNames.includes(currentClass.name)) return true;
+    if (currentClass.id && a.targetClassId === currentClass.id) return true;
+    if (currentClass.name && a.targetClassName === currentClass.name) return true;
+    if (Array.isArray(a.targetClassIds) && (currentClass.id ? a.targetClassIds.includes(currentClass.id) : false || a.targetClassIds.includes('ALL'))) return true;
+    if (Array.isArray(a.targetClassNames) && currentClass.name && a.targetClassNames.includes(currentClass.name)) return true;
     const normA = (a.targetClassName || '').toLowerCase().trim();
-    const normC = currentClass.name.toLowerCase().trim();
+    const normC = (currentClass.name || '').toLowerCase().trim();
     if (normA && normC && normA === normC) return true;
     return false;
   });
@@ -470,25 +470,27 @@ export const StudentManagement: React.FC = () => {
 
   // Check if a student has submitted the active assignment (returns highest score attempt)
   const getStudentSubmission = (student: Student): Submission | undefined => {
-    if (!activeAssignment) return undefined;
+    if (!activeAssignment || !student) return undefined;
     const stdSubs = submissions.filter(s =>
-      s.assignmentId === activeAssignment.id &&
+      s && s.assignmentId === activeAssignment.id &&
       isStudentMatch(student, s)
     );
     if (stdSubs.length === 0) return undefined;
     return stdSubs.reduce((prev, curr) => (curr.score > prev.score ? curr : prev), stdSubs[0]);
   };
 
-  const notDoneStudents = students.filter(s => !getStudentSubmission(s));
-  const doneStudents = students.filter(s => !!getStudentSubmission(s));
+  const notDoneStudents = students.filter(s => s && !getStudentSubmission(s));
+  const doneStudents = students.filter(s => s && !!getStudentSubmission(s));
 
   // Filtered students by search AND homework status
   const filteredStudents = students.filter(s => {
+    if (!s) return false;
+    const studentNameClean = s.name || '';
     const matchQuery =
-      s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      studentNameClean.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (s.englishName && s.englishName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (s.rollNumber && s.rollNumber.includes(searchQuery)) ||
-      (s.phone && s.phone.includes(searchQuery));
+      (s.rollNumber && String(s.rollNumber).includes(searchQuery)) ||
+      (s.phone && String(s.phone).includes(searchQuery));
     if (!matchQuery) return false;
 
     if (homeworkStatusFilter === 'NOT_DONE') {
@@ -682,7 +684,7 @@ export const StudentManagement: React.FC = () => {
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder={`Tìm tên hoặc tên tiếng Anh trong ${currentClass.name}...`}
+                placeholder={`Tìm tên hoặc tên tiếng Anh trong ${currentClass?.name || 'lớp'}...`}
                 className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-brand-500 outline-none"
               />
               <span className="absolute left-3 top-2.5 text-slate-400 text-sm">🔍</span>
@@ -722,7 +724,7 @@ export const StudentManagement: React.FC = () => {
                 <button
                   onClick={handleClearClassStudents}
                   className="px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs sm:text-sm rounded-xl border border-rose-200 transition-all flex items-center gap-1.5 shadow-sm"
-                  title={`Xóa toàn bộ học sinh trong lớp ${currentClass.name} để tải danh sách mới`}
+                  title={`Xóa toàn bộ học sinh trong lớp ${currentClass?.name || ''} để tải danh sách mới`}
                 >
                   <span>🗑️</span> Xóa HS Lớp Này
                 </button>
@@ -828,7 +830,7 @@ export const StudentManagement: React.FC = () => {
             {homeworkStatusFilter === 'NOT_DONE' && (
               <div className="p-2.5 bg-rose-50/80 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center justify-between">
                 <span>
-                  Đang lọc <b>{notDoneStudents.length}</b> bạn học sinh trong <b>{currentClass.name}</b> chưa hoàn thành bài tập <b>"{activeAssignment?.title || activeAssignment?.topic || 'này'}"</b>.
+                  Đang lọc <b>{notDoneStudents.length}</b> bạn học sinh trong <b>{currentClass?.name || 'lớp'}</b> chưa hoàn thành bài tập <b>"{activeAssignment?.title || activeAssignment?.topic || 'này'}"</b>.
                 </span>
                 <button
                   type="button"
@@ -849,10 +851,10 @@ export const StudentManagement: React.FC = () => {
               </div>
               <h4 className="font-black text-slate-800 text-lg">
                 {homeworkStatusFilter === 'NOT_DONE'
-                  ? `Tuyệt vời! 100% học sinh ${currentClass.name} đã hoàn thành bài tập này!`
+                  ? `Tuyệt vời! 100% học sinh ${currentClass?.name || ''} đã hoàn thành bài tập này!`
                   : homeworkStatusFilter === 'DONE'
-                  ? `Chưa có học sinh nào trong ${currentClass.name} nộp bài tập này.`
-                  : `Lớp ${currentClass.name} hiện chưa có học sinh`}
+                  ? `Chưa có học sinh nào trong ${currentClass?.name || ''} nộp bài tập này.`
+                  : `Lớp ${currentClass?.name || ''} hiện chưa có học sinh`}
               </h4>
               <p className="text-sm text-slate-500 max-w-lg mx-auto">
                 {homeworkStatusFilter !== 'ALL' ? (
@@ -1219,7 +1221,7 @@ export const StudentManagement: React.FC = () => {
       {showAddStudent && currentClass && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-fade-in">
-            <h3 className="text-lg font-black text-brand-900">➕ Thêm Học Sinh Vào {currentClass.name}</h3>
+            <h3 className="text-lg font-black text-brand-900">➕ Thêm Học Sinh Vào {currentClass?.name || ''}</h3>
             <form onSubmit={handleAddSingleStudent} className="space-y-3">
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1">Họ và Tên Học Sinh *</label>
@@ -1301,7 +1303,7 @@ export const StudentManagement: React.FC = () => {
                 <span className="text-2xl">📥</span>
                 <div>
                   <h3 className="text-lg font-black text-brand-900">Nhập Danh Sách Học Sinh Từ File Excel</h3>
-                  <p className="text-xs text-slate-500 font-medium">Áp dụng cho: <b>{currentClass.name}</b></p>
+                  <p className="text-xs text-slate-500 font-medium">Áp dụng cho: <b>{currentClass?.name || ''}</b></p>
                 </div>
               </div>
               <button onClick={() => setShowExcelModal(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
@@ -1408,7 +1410,7 @@ export const StudentManagement: React.FC = () => {
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4 animate-fade-in">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-black text-brand-900">📋 Dán Danh Sách Học Sinh Vào {currentClass.name}</h3>
+              <h3 className="text-lg font-black text-brand-900">📋 Dán Danh Sách Học Sinh Vào {currentClass?.name || ''}</h3>
               <button onClick={() => setShowBatchModal(false)} className="text-slate-400 hover:text-slate-600 font-bold">✕</button>
             </div>
             <div className="text-xs text-slate-600 space-y-1 bg-slate-50 p-3 rounded-2xl border border-slate-200">

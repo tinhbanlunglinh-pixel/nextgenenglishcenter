@@ -44,7 +44,7 @@ export const StudentLessonView: React.FC<StudentLessonViewProps> = ({
     setCurrentAssign(assignment);
   }, [assignment]);
 
-  const existingSubmission = getStudentSubmission(currentAssign.id || assignment.id, studentName, studentId, studentClass);
+  const existingSubmission = getStudentSubmission(currentAssign?.id || assignment?.id || '', studentName, studentId, studentClass);
   const [isSubmitted, setIsSubmitted] = useState(!!existingSubmission);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedScore, setSubmittedScore] = useState<number>(existingSubmission?.score || 0);
@@ -53,14 +53,14 @@ export const StudentLessonView: React.FC<StudentLessonViewProps> = ({
 
   // Chuẩn 55 câu hỏi MegaChallenge (10 Quiz ABCD + 5 Bài đọc ABCD + 5 Cách đọc khác + 10 Sắp xếp + 10 Dịch nghĩa + 10 Đúng/Sai + 5 Luyện nghe)
   const computedTotal =
-    (lesson.practice?.megaTest?.multipleChoice?.length || 0) +
-    (lesson.practice?.megaTest?.readingMC?.length || 0) +
-    (lesson.practice?.megaTest?.pronunciation?.length || 0) +
-    (lesson.practice?.megaTest?.scramble?.length || 0) +
-    (lesson.practice?.megaTest?.vocabTranslation?.length || 0) +
-    (lesson.practice?.megaTest?.trueFalse?.length || 0) +
-    (lesson.practice?.listening?.length || 0) +
-    (lesson.practice?.megaTest?.fillBlank?.length || 0);
+    (lesson?.practice?.megaTest?.multipleChoice?.length || 0) +
+    (lesson?.practice?.megaTest?.readingMC?.length || 0) +
+    (lesson?.practice?.megaTest?.pronunciation?.length || 0) +
+    (lesson?.practice?.megaTest?.scramble?.length || 0) +
+    (lesson?.practice?.megaTest?.vocabTranslation?.length || 0) +
+    (lesson?.practice?.megaTest?.trueFalse?.length || 0) +
+    (lesson?.practice?.listening?.length || 0) +
+    (lesson?.practice?.megaTest?.fillBlank?.length || 0);
 
   const totalQuestions = computedTotal > 0 ? computedTotal : 55;
   const [submittedQuestions, setSubmittedQuestions] = useState<number>(existingSubmission?.totalQuestions || totalQuestions);
@@ -343,7 +343,7 @@ export const StudentLessonView: React.FC<StudentLessonViewProps> = ({
       )}
 
       {/* PHẦN 3: SIÊU THỬ THÁCH BÀI TẬP MEGA CHALLENGE (55 CÂU HỎI) */}
-      {lesson.practice?.megaTest && (
+      {lesson?.practice?.megaTest && (
         <div className="space-y-4">
           <MegaChallenge
             megaData={lesson.practice.megaTest}
@@ -351,11 +351,11 @@ export const StudentLessonView: React.FC<StudentLessonViewProps> = ({
             onScoresUpdate={handleScoresUpdate}
             isTeacher={isTeacher}
             lessonContext={{
-              grade: currentAssign.grade,
-              topic: lesson.topic,
-              grammarTopic: lesson.grammar?.topic,
-              grammarStructure: lesson.grammar?.structure,
-              vocabulary: lesson.vocabulary?.map((v: any) => v.word || v.term).filter(Boolean),
+              grade: currentAssign?.grade || assignment?.grade || 5,
+              topic: lesson?.topic || assignment?.topic || '',
+              grammarTopic: lesson?.grammar?.topic,
+              grammarStructure: lesson?.grammar?.structure,
+              vocabulary: (lesson?.vocabulary || []).map((v: any) => v?.word || v?.term || '').filter(Boolean),
             }}
             onUpdateMegaData={handleUpdateMega}
             onUpdateListeningData={handleUpdateListening}

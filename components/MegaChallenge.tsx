@@ -490,7 +490,7 @@ export const MegaChallenge: React.FC<MegaChallengeProps> = ({
                   <CollapsibleExplanation
                     isCorrect={smartCheckMC(answers[q.id], q.correctAnswer, q.options, q.alternativeCorrectAnswers)}
                     explanation={q.explanation || ''}
-                    correctAnswer={allCorrectIndices.map(ci => `${String.fromCharCode(65 + ci)}. ${q.options[ci]}`).join(' hoặc ')}
+                    correctAnswer={allCorrectIndices.map(ci => `${String.fromCharCode(65 + ci)}. ${q.options?.[ci] || ''}`).join(' hoặc ')}
                     isTeacher={isTeacherActive}
                     onEditQuestion={() => setFixingQuestion({ type: 'multipleChoice', index: idx, data: q })}
                   />
@@ -576,7 +576,7 @@ export const MegaChallenge: React.FC<MegaChallengeProps> = ({
                     <CollapsibleExplanation
                       isCorrect={smartCheckMC(answers[q.id], q.correctAnswer, q.options, q.alternativeCorrectAnswers)}
                       explanation={q.explanation || ''}
-                      correctAnswer={allCorrectIndices.map(ci => `${String.fromCharCode(65 + ci)}. ${q.options[ci]}`).join(' hoặc ')}
+                      correctAnswer={allCorrectIndices.map(ci => `${String.fromCharCode(65 + ci)}. ${q.options?.[ci] || ''}`).join(' hoặc ')}
                       isTeacher={isTeacherActive}
                       onEditQuestion={() => setFixingQuestion({ type: 'readingMC', index: idx, data: q })}
                     />
@@ -690,7 +690,7 @@ export const MegaChallenge: React.FC<MegaChallengeProps> = ({
                     <CollapsibleExplanation
                       isCorrect={smartCheckMC(answers[q.id], q.correctAnswer, q.options, q.alternativeCorrectAnswers)}
                       explanation={q.explanation || ''}
-                      correctAnswer={allCorrectIndices.map(ci => `${String.fromCharCode(65 + ci)}. ${q.options[ci]}`).join(' hoặc ')}
+                      correctAnswer={allCorrectIndices.map(ci => `${String.fromCharCode(65 + ci)}. ${q.options?.[ci] || ''}`).join(' hoặc ')}
                       isTeacher={isTeacherActive}
                       onEditQuestion={() => setFixingQuestion({ type: 'pronunciation', index: idx, data: q })}
                     />
@@ -922,8 +922,8 @@ export const MegaChallenge: React.FC<MegaChallengeProps> = ({
                 {submitted[q.id] && (
                   <CollapsibleExplanation
                     isCorrect={smartCheckMC(answers[q.id], q.correctAnswer, q.options, q.alternativeCorrectAnswers)}
-                    explanation={q.explanation || `'${q.word}' nghĩa là '${q.options[q.correctAnswer]}'`}
-                    correctAnswer={allCorrectIndices.map(ci => `${String.fromCharCode(65 + ci)}. ${q.options[ci]}`).join(' hoặc ')}
+                    explanation={q.explanation || `'${q.word}' nghĩa là '${q.options?.[q.correctAnswer] || ''}'`}
+                    correctAnswer={allCorrectIndices.map(ci => `${String.fromCharCode(65 + ci)}. ${q.options?.[ci] || ''}`).join(' hoặc ')}
                     isTeacher={isTeacherActive}
                     onEditQuestion={() => setFixingQuestion({ type: 'vocabTranslation', index: idx, data: q })}
                   />
@@ -1037,7 +1037,7 @@ export const MegaChallenge: React.FC<MegaChallengeProps> = ({
               <p className="text-sm opacity-90">Đọc kỹ bài văn và điền từ thích hợp vào chỗ trống</p>
             </div>
 
-            {currentMega.readingFill.map((q, idx) => {
+            {(currentMega.readingFill || []).map((q, idx) => {
               const isSubmitted = !!submitted[q.id];
               const userInput = answers[q.id]?.userAnswer || '';
               const isCorrect = answers[q.id]?.isCorrect;
@@ -1077,7 +1077,7 @@ export const MegaChallenge: React.FC<MegaChallengeProps> = ({
                             handleAnswer(q.id, { userAnswer: opt, isCorrect: false });
                           }}
                           className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
-                            userInput.toLowerCase() === opt.toLowerCase()
+                            String(userInput || '').toLowerCase() === String(opt || '').toLowerCase()
                               ? 'bg-teal-600 text-white border-teal-700 shadow-sm scale-105'
                               : 'bg-slate-50 hover:bg-teal-50 text-slate-700 border-slate-200'
                           }`}

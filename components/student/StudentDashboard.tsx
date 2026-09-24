@@ -14,6 +14,7 @@ import { getCurrentUser } from '../../services/authService';
 import { StudentLessonView } from './StudentLessonView';
 import { StudentLeaderboardHonor } from './StudentLeaderboardHonor';
 import { StudentChangePasswordModal } from './StudentChangePasswordModal';
+import { ErrorBoundary } from '../ErrorBoundary';
 
 export const StudentDashboard: React.FC = () => {
   const currentUser = getCurrentUser();
@@ -211,17 +212,27 @@ export const StudentDashboard: React.FC = () => {
       : (selectedClassName || currentUser?.className || 'Chưa phân lớp');
 
     return (
-      <StudentLessonView
-        assignment={selectedAssignment}
-        studentName={studentName}
-        studentClass={effectiveClass}
-        studentId={currentStudentObj?.id}
-        onBack={() => {
+      <ErrorBoundary
+        fallbackTitle="Sự Cố Tải Giao Diện Bài Học"
+        fallbackMessage="Hệ thống gặp sự cố tạm thời khi tải nội dung bài học này. Đừng lo lắng, con có thể bấm nút bên dưới để quay lại danh sách bài tập nhé!"
+        onReset={() => {
           setSelectedAssignment(null);
           setSubmissionVersion(v => v + 1);
           refreshData();
         }}
-      />
+      >
+        <StudentLessonView
+          assignment={selectedAssignment}
+          studentName={studentName}
+          studentClass={effectiveClass}
+          studentId={currentStudentObj?.id}
+          onBack={() => {
+            setSelectedAssignment(null);
+            setSubmissionVersion(v => v + 1);
+            refreshData();
+          }}
+        />
+      </ErrorBoundary>
     );
   }
 

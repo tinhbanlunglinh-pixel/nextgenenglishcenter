@@ -1664,26 +1664,28 @@ export const gradeExamSubmission = (
     return false;
   };
 
-  exam.sections.forEach(sec => {
-    sec.questions.forEach(q => {
+  (exam?.sections || []).forEach(sec => {
+    (sec?.questions || []).forEach(q => {
+      if (!q) return;
       totalQuestions += 1;
-      maxPoints += q.points;
-      const studentAns = studentAnswers[q.id] || '';
-      const isCorrect = isAnswerMatch(studentAns, q.correctAnswer, q.alternativeAnswers, q.type, q.options);
+      const points = typeof q.points === 'number' && !isNaN(q.points) ? q.points : 1;
+      maxPoints += points;
+      const studentAns = studentAnswers?.[q.id] || '';
+      const isCorrect = isAnswerMatch(studentAns, String(q.correctAnswer || ''), q.alternativeAnswers || [], q.type, q.options || []);
 
-      const pointsEarned = isCorrect ? q.points : 0;
+      const pointsEarned = isCorrect ? points : 0;
       if (isCorrect) {
         totalCorrect += 1;
         totalPointsEarned += pointsEarned;
       }
 
       questionResults.push({
-        questionId: q.id,
+        questionId: q.id || `q_${totalQuestions}`,
         isCorrect,
         studentAnswer: studentAns,
-        correctAnswer: q.correctAnswer,
+        correctAnswer: String(q.correctAnswer || ''),
         pointsEarned,
-        pointsPossible: q.points,
+        pointsPossible: points,
         explanation: q.explanation
       });
     });

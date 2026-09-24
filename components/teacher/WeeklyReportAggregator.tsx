@@ -457,8 +457,9 @@ export const WeeklyReportAggregator: React.FC = () => {
     });
     headerRow1.push('ĐIỂM TB TUẦN');
 
+    const classNameForExport = currentClass ? currentClass.name : 'Lop';
     const dataRows = studentScores.map(std => {
-      const row: any[] = [currentClass.name, std.studentName, std.englishName || ''];
+      const row: any[] = [classNameForExport, std.studentName, std.englishName || ''];
       sessions.forEach(s => {
         s.columns.forEach(col => {
           const val = std.scores?.[s.id]?.[col.key];
@@ -472,7 +473,7 @@ export const WeeklyReportAggregator: React.FC = () => {
     const ws = XLSX.utils.aoa_to_sheet([headerRow1, ...dataRows]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, `Báo cáo Tuần ${selectedWeek}`);
-    XLSX.writeFile(wb, `Bao_cao_tuan_${selectedWeek}_thang_${selectedMonth}_${currentClass.name.replace(/\s+/g, '_')}.xlsx`);
+    XLSX.writeFile(wb, `Bao_cao_tuan_${selectedWeek}_thang_${selectedMonth}_${classNameForExport.replace(/\s+/g, '_')}.xlsx`);
   };
 
   // Sort students for Ranking
