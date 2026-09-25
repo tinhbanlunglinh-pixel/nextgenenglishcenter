@@ -46,6 +46,7 @@ const WEEKLY_REPORTS_KEY = 'nextgen_weekly_reports';
 const ANNUAL_REPORTS_KEY = 'nextgen_annual_reports';
 const CLASS_SCHEDULES_KEY = 'nextgen_class_schedules';
 const ATTENDANCE_RECORDS_KEY = 'nextgen_attendance_records';
+const ADMIN_NOTIFICATIONS_KEY = 'nextgen_admin_notifications';
 const DATA_CLEANED_KEY = 'nextgen_data_cleaned';
 
 // BroadcastChannel for instant multi-tab sync
@@ -150,6 +151,22 @@ export const clearAllDemoData = async (): Promise<void> => {
   localStorage.setItem(ATTENDANCE_RECORDS_KEY, JSON.stringify([]));
   localStorage.setItem(ADMIN_NOTIFICATIONS_KEY, JSON.stringify([]));
   localStorage.removeItem('lesson_history');
+  localStorage.removeItem('nextgen_pending_submissions');
+  localStorage.removeItem('nextgen_custom_accounts');
+  localStorage.removeItem('nextgen_active_student_name');
+  localStorage.removeItem('nextgen_active_class_name');
+  localStorage.removeItem('nextgen_selected_student');
+  localStorage.removeItem('nextgen_selected_class');
+
+  try {
+    const currentAuthRaw = localStorage.getItem('nextgen_auth_current_user');
+    if (currentAuthRaw) {
+      const authObj = JSON.parse(currentAuthRaw);
+      if (authObj && authObj.role === 'student') {
+        localStorage.removeItem('nextgen_auth_current_user');
+      }
+    }
+  } catch {}
 
   // Also clean old legacy mrs_dung keys
   const legacyKeys = [
@@ -174,15 +191,17 @@ export const clearAllDemoData = async (): Promise<void> => {
     syncToFirebaseIfConfigured('submissions', []),
     syncToFirebaseIfConfigured('monthly_reports', []),
     syncToFirebaseIfConfigured('weekly_reports', []),
+    syncToFirebaseIfConfigured('annual_reports', []),
     syncToFirebaseIfConfigured('class_schedules', []),
-    syncToFirebaseIfConfigured('attendance_records', [])
+    syncToFirebaseIfConfigured('attendance_records', []),
+    syncToFirebaseIfConfigured('admin_notifications', [])
   ]);
 
   notifySync('data_reset_all', { timestamp: Date.now() });
 };
 
 // ── Nextgen Master Clean Slate (Wipe repository, classes, students, notifications, visits) ──
-const NEXTGEN_MASTER_CLEAN_KEY = 'nextgen_master_cleaned_v3';
+const NEXTGEN_MASTER_CLEAN_KEY = 'nextgen_master_cleaned_pure_real_v1';
 
 export const ensureNextgenMasterClean = (): void => {
   if (typeof window === 'undefined') return;
@@ -198,7 +217,7 @@ export const ensureNextgenMasterClean = (): void => {
         });
       } catch {}
 
-      // 2. Wipe repository, classes, students, notifications, visits
+      // 2. Wipe repository, classes, students, notifications, visits, custom student accounts
       localStorage.setItem(CLASSES_KEY, JSON.stringify([]));
       localStorage.setItem(DELETED_CLASSES_KEY, JSON.stringify([]));
       localStorage.setItem(STUDENTS_KEY, JSON.stringify([]));
@@ -213,10 +232,22 @@ export const ensureNextgenMasterClean = (): void => {
       localStorage.setItem(ATTENDANCE_RECORDS_KEY, JSON.stringify([]));
       localStorage.setItem(ADMIN_NOTIFICATIONS_KEY, JSON.stringify([]));
       localStorage.removeItem('lesson_history');
+      localStorage.removeItem('nextgen_pending_submissions');
+      localStorage.removeItem('nextgen_custom_accounts');
       localStorage.removeItem('nextgen_active_student_name');
       localStorage.removeItem('nextgen_active_class_name');
       localStorage.removeItem('nextgen_selected_student');
       localStorage.removeItem('nextgen_selected_class');
+
+      try {
+        const currentAuthRaw = localStorage.getItem('nextgen_auth_current_user');
+        if (currentAuthRaw) {
+          const authObj = JSON.parse(currentAuthRaw);
+          if (authObj && authObj.role === 'student') {
+            localStorage.removeItem('nextgen_auth_current_user');
+          }
+        }
+      } catch {}
 
       // 3. Set marker
       localStorage.setItem(NEXTGEN_MASTER_CLEAN_KEY, 'true');
@@ -233,8 +264,10 @@ export const ensureNextgenMasterClean = (): void => {
         syncToFirebaseIfConfigured('submissions', []),
         syncToFirebaseIfConfigured('monthly_reports', []),
         syncToFirebaseIfConfigured('weekly_reports', []),
+        syncToFirebaseIfConfigured('annual_reports', []),
         syncToFirebaseIfConfigured('class_schedules', []),
-        syncToFirebaseIfConfigured('attendance_records', [])
+        syncToFirebaseIfConfigured('attendance_records', []),
+        syncToFirebaseIfConfigured('admin_notifications', [])
       ]).catch(e => console.warn('Firebase wipe note:', e));
 
       notifySync('data_reset_all', { timestamp: Date.now() });
@@ -1507,8 +1540,6 @@ export interface AdminNotificationItem {
   isRead: boolean;
   createdAt: number;
 }
-
-const ADMIN_NOTIFICATIONS_KEY = 'nextgen_admin_notifications';
 
 export const getAdminNotifications = (): AdminNotificationItem[] => {
   if (typeof window === 'undefined') return [];

@@ -322,9 +322,13 @@ export const AnnualReportAggregator: React.FC<AnnualReportAggregatorProps> = ({ 
               onChange={e => handleClassChange(e.target.value)}
               className="px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold bg-white text-slate-800 focus:border-brand-500 outline-none shadow-xs cursor-pointer"
             >
-              {classes.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
+              {classes.length === 0 ? (
+                <option value="">-- Chưa có lớp học nào --</option>
+              ) : (
+                classes.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))
+              )}
             </select>
           </div>
 
@@ -397,8 +401,18 @@ export const AnnualReportAggregator: React.FC<AnnualReportAggregatorProps> = ({ 
         </div>
       </div>
 
-      {/* Summary KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {classes.length === 0 ? (
+        <div className="bg-amber-50 border-2 border-dashed border-amber-300 rounded-3xl p-8 text-center space-y-3">
+          <span className="text-4xl">🏫</span>
+          <h3 className="text-lg font-black text-amber-900">Chưa có lớp học nào</h3>
+          <p className="text-sm text-amber-700 max-w-md mx-auto">
+            Hệ thống hiện tại chưa có lớp học nào để tổng hợp báo cáo cả năm. Thầy/Cô hãy vào mục <b>"Quản Lý Học Sinh Theo Lớp"</b> để tạo lớp học và thêm học sinh nhé!
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Summary KPI Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-2xl p-5 shadow-lg border border-brand-100 flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center text-2xl shrink-0">
             👥
@@ -728,6 +742,8 @@ export const AnnualReportAggregator: React.FC<AnnualReportAggregatorProps> = ({ 
           </div>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 };

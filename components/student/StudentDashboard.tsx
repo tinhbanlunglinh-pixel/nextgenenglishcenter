@@ -321,7 +321,7 @@ export const StudentDashboard: React.FC = () => {
                 <span>👩‍🏫 Chế độ xem thử của Giáo viên</span>
               </div>
               <h3 className="text-base sm:text-lg font-black text-slate-900">
-                Đang Xem Giao Diện Học Sinh Lớp: <span className="text-brand-700 font-black">{selectedClassName}</span>
+                Đang Xem Giao Diện Học Sinh Lớp: <span className="text-brand-700 font-black">{selectedClassName || '(Chưa có lớp)'}</span>
               </h3>
               <p className="text-xs text-slate-500">
                 Hệ thống chỉ hiển thị các bài tập và bảng vinh danh thuộc về lớp đang chọn:
@@ -330,22 +330,28 @@ export const StudentDashboard: React.FC = () => {
 
             {/* Các nút chọn lớp để cô giáo xem thử */}
             <div className="flex flex-wrap gap-1.5 items-center">
-              {classes.map(c => {
-                const isSelected = c.name === selectedClassName;
-                return (
-                  <button
-                    key={c.id}
-                    onClick={() => handleSelectClass(c.name)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-brand-600 text-white shadow-md ring-2 ring-brand-300'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                    }`}
-                  >
-                    {c.name}
-                  </button>
-                );
-              })}
+              {classes.length === 0 ? (
+                <span className="text-xs text-amber-700 italic bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200">
+                  Chưa có lớp nào
+                </span>
+              ) : (
+                classes.map(c => {
+                  const isSelected = c.name === selectedClassName;
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => handleSelectClass(c.name)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-brand-600 text-white shadow-md ring-2 ring-brand-300'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      {c.name}
+                    </button>
+                  );
+                })
+              )}
             </div>
           </div>
 
@@ -439,7 +445,9 @@ export const StudentDashboard: React.FC = () => {
                     ? 'Tuyệt vời! Con đã hoàn thành hết tất cả các bài tập hiện có.'
                     : filterStatus === 'completed'
                     ? 'Con chưa có bài tập nào đã hoàn thành.'
-                    : `Hiện chưa có bài tập nào được giao cho ${selectedClassName}`}
+                    : selectedClassName
+                    ? `Hiện chưa có bài tập nào được giao cho ${selectedClassName}.`
+                    : 'Hiện chưa có bài tập nào được giao trong hệ thống.'}
                 </p>
                 <p className="text-xs text-slate-400">Giáo viên Nextgen sẽ sớm giao thêm bài mới. Hãy quay lại kiểm tra sau nhé!</p>
               </div>

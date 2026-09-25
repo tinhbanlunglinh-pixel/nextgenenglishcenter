@@ -46,13 +46,15 @@ export const isFirebaseConfigured = (): boolean => {
   return !!(cfg && cfg.databaseURL && cfg.databaseURL.startsWith('https://'));
 };
 
+export const FIREBASE_NAMESPACE = 'nextgen_app';
+
 /**
  * Format Realtime Database REST URL
  */
 const getDatabaseEndpoint = (databaseURL: string, path: string): string => {
   const cleanBase = databaseURL.replace(/\/+$/, '');
   const cleanPath = path.replace(/^\/+/, '').replace(/\.json$/, '');
-  return `${cleanBase}/${cleanPath}.json`;
+  return `${cleanBase}/${FIREBASE_NAMESPACE}/${cleanPath}.json`;
 };
 
 /**
@@ -313,7 +315,7 @@ export const subscribeToFirebaseRealtime = (onSubmissionChange: (submission: any
 
       const cleanBase = cfg.databaseURL.replace(/\/+$/, '');
       const authParam = cfg.apiKey ? `?auth=${cfg.apiKey}` : '';
-      const streamUrl = `${cleanBase}/submissions.json${authParam}`;
+      const streamUrl = `${cleanBase}/${FIREBASE_NAMESPACE}/submissions.json${authParam}`;
 
       eventSource = new EventSource(streamUrl);
 

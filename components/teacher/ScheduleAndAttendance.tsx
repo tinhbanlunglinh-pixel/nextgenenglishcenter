@@ -416,15 +416,30 @@ export const ScheduleAndAttendance: React.FC = () => {
               onChange={e => setSelectedClassId(e.target.value)}
               className="bg-white text-slate-900 font-black text-sm px-3 py-2 rounded-xl outline-none shadow-sm cursor-pointer"
             >
-              {classes.map(c => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.studentCount || 0} HS)
-                </option>
-              ))}
+              {classes.length === 0 ? (
+                <option value="">-- Chưa có lớp học nào --</option>
+              ) : (
+                classes.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.studentCount || 0} HS)
+                  </option>
+                ))
+              )}
             </select>
           </div>
         </div>
       </div>
+
+      {classes.length === 0 ? (
+        <div className="bg-amber-50 border-2 border-dashed border-amber-300 rounded-3xl p-8 text-center space-y-3">
+          <span className="text-4xl">🏫</span>
+          <h3 className="text-lg font-black text-amber-900">Chưa có lớp học nào</h3>
+          <p className="text-sm text-amber-700 max-w-md mx-auto">
+            Hệ thống hiện tại chưa có lớp học nào. Thầy/Cô hãy vào mục <b>"Quản Lý Học Sinh Theo Lớp"</b> để tạo lớp học và thêm học sinh nhé!
+          </p>
+        </div>
+      ) : (
+        <>
 
       {/* Sub Tab Navigation */}
       <div className="flex bg-white p-2 rounded-2xl shadow-sm border border-slate-200 gap-2 overflow-x-auto">
@@ -1092,6 +1107,8 @@ export const ScheduleAndAttendance: React.FC = () => {
             )}
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

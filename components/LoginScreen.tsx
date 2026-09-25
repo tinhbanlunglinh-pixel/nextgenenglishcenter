@@ -322,7 +322,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                       className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none text-sm font-bold bg-white text-slate-800 cursor-pointer"
                     >
                       {classes.length === 0 ? (
-                        <option value="">-- Đang đồng bộ danh sách lớp... --</option>
+                        <option value="">-- Chưa có lớp học nào --</option>
                       ) : (
                         classes.map(c => (
                           <option key={c.id} value={c.name}>
@@ -331,6 +331,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                         ))
                       )}
                     </select>
+                    {classes.length === 0 && (
+                      <p className="text-[11px] text-amber-700 mt-1.5 italic font-medium">
+                        ⚠️ Giáo viên đang cập nhật danh sách lớp và bài tập. Các con vui lòng quay lại sau nhé!
+                      </p>
+                    )}
                   </div>
                 </div>
 

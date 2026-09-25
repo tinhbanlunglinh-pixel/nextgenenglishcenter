@@ -1286,7 +1286,7 @@ export const AssignmentCreator: React.FC<AssignmentCreatorProps> = ({
 
                       {classes.length === 0 ? (
                         <p className="text-xs text-amber-600 font-medium italic">
-                          Chưa có lớp học nào trong hệ thống. Cô hãy vào mục "Quản lý Lớp" để thêm lớp nhé!
+                          Chưa có lớp học nào trong hệ thống. Thầy/Cô hãy vào mục "Quản Lý Học Sinh Theo Lớp" để thêm lớp nhé!
                         </p>
                       ) : (
                         <div className="flex flex-wrap gap-2.5 pt-1">

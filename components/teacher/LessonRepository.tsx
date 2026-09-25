@@ -476,8 +476,8 @@ ${link}
           <h3 className="text-lg font-black text-slate-800">Không tìm thấy tài liệu phù hợp trong kho</h3>
           <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
             {searchQuery || selectedClassFilter !== 'ALL' || dateFilter !== 'ALL'
-              ? 'Không có bài tập nào thỏa mãn bộ lọc hiện tại. Cô hãy thử xóa bớt từ khóa hoặc chọn "Tất cả các lớp".'
-              : 'Kho tài liệu hiện đang trống. Cô hãy bấm "Soạn bài mới bằng AI" để bắt đầu biên soạn bài giảng nhé!'}
+              ? 'Không có bài tập nào thỏa mãn bộ lọc hiện tại. Thầy/Cô hãy thử xóa bớt từ khóa hoặc chọn "Tất cả các lớp".'
+              : 'Kho tài liệu hiện đang trống. Thầy/Cô hãy bấm "Soạn bài mới bằng AI" để bắt đầu biên soạn bài giảng nhé!'}
           </p>
           {(searchQuery || selectedClassFilter !== 'ALL' || dateFilter !== 'ALL') && (
             <button
