@@ -6,14 +6,22 @@ const FIREBASE_CONFIG_KEY = 'nextgen_firebase_config';
  * Default Firebase Configuration for Nextgen English
  */
 export const DEFAULT_FIREBASE_CONFIG: FirebaseConfig = {
-  apiKey: "AIzaSyAwl9RWxJATZbh_OD7cfOVN_ikC4InK_4k",
-  authDomain: "english-mrs-dung.firebaseapp.com",
-  databaseURL: "https://english-mrs-dung-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "english-mrs-dung",
-  storageBucket: "english-mrs-dung.firebasestorage.app",
-  messagingSenderId: "797526955233",
-  appId: "1:797526955233:web:75cef3a23e85e8f002d3a0"
+  apiKey: "AIzaSyAi60G0be-uydY2v2Ae6AjSMdOfx25u8oU",
+  authDomain: "nextgen-df572.firebaseapp.com",
+  databaseURL: "https://nextgen-df572-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "nextgen-df572",
+  storageBucket: "nextgen-df572.firebasestorage.app",
+  messagingSenderId: "245734325154",
+  appId: "1:245734325154:web:0644688ead9bc418c050fb"
 };
+
+// Firebase cũ dùng chung với app Mrs Dung - cấu hình còn lưu trên trình duyệt sẽ bị bỏ qua
+const LEGACY_FIREBASE_PROJECTS = ['english-mrs-dung'];
+
+const isLegacyFirebaseConfig = (cfg: Partial<FirebaseConfig>): boolean =>
+  LEGACY_FIREBASE_PROJECTS.some(id =>
+    (cfg.projectId || '').includes(id) || (cfg.databaseURL || '').includes(id)
+  );
 
 export const getFirebaseConfig = (): FirebaseConfig => {
   if (typeof window === 'undefined') return DEFAULT_FIREBASE_CONFIG;
@@ -21,6 +29,10 @@ export const getFirebaseConfig = (): FirebaseConfig => {
     const raw = localStorage.getItem(FIREBASE_CONFIG_KEY);
     if (!raw) return DEFAULT_FIREBASE_CONFIG;
     const parsed = JSON.parse(raw) as Partial<FirebaseConfig>;
+    if (isLegacyFirebaseConfig(parsed)) {
+      localStorage.removeItem(FIREBASE_CONFIG_KEY);
+      return DEFAULT_FIREBASE_CONFIG;
+    }
     return {
       ...DEFAULT_FIREBASE_CONFIG,
       ...parsed,

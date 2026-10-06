@@ -201,7 +201,8 @@ export const clearAllDemoData = async (): Promise<void> => {
 };
 
 // ── Nextgen Master Clean Slate (Wipe repository, classes, students, notifications, visits) ──
-const NEXTGEN_MASTER_CLEAN_KEY = 'nextgen_master_cleaned_pure_real_v1';
+// v2: dọn sạch dữ liệu cũ một lần khi tách sang Firebase riêng nextgen-df572
+const NEXTGEN_MASTER_CLEAN_KEY = 'nextgen_master_cleaned_separate_firebase_v2';
 
 export const ensureNextgenMasterClean = (): void => {
   if (typeof window === 'undefined') return;
